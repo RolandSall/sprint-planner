@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1772543847224,
-      "tag": "0000_init",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1772630247224,
-      "tag": "0001_add_feature_color",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1772716647224,
-      "tag": "0002_estimation_to_real",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1772631740791,
-      "tag": "0003_kind_snowbird",
+      "when": 1772642595903,
+      "tag": "0000_smart_phil_sheldon",
       "breakpoints": true
     }
   ]

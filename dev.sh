@@ -2,7 +2,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # dev.sh — Run PI Planning locally (DB in Docker, API + Web native)
 # Usage:
-#   ./dev.sh                       # standard local dev
+#   ./dev.sh                       # default: platform-team-pi-2026-q1.csv
+#   ./dev.sh --scenario=easy       # 8 stories, 4 sprints, simple deps
+#   ./dev.sh --scenario=medium     # 20 stories, 5 sprints, cross-feature deps
+#   ./dev.sh --scenario=complex    # 45 stories, 6 sprints, deep chains + ext deps
 #   ./dev.sh --with-mediatorflow   # enable MediatorFlow dashboard on :4800
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
@@ -22,11 +25,24 @@ command -v node    &>/dev/null || die "node not found."
 
 # ── Flags ──────────────────────────────────────────────────────────────────────
 WITH_MEDIATORFLOW=false
+SCENARIO=""
 for arg in "$@"; do
   case $arg in
     --with-mediatorflow) WITH_MEDIATORFLOW=true ;;
+    --scenario=*) SCENARIO="${arg#*=}" ;;
   esac
 done
+
+# Resolve CSV file: --scenario overrides, otherwise use original
+if [ -n "$SCENARIO" ]; then
+  CSV_FILE="sample-data/${SCENARIO}.csv"
+  [ -f "$CSV_FILE" ] || die "Unknown scenario '${SCENARIO}'. Available: easy, medium, complex"
+  log "Scenario: ${SCENARIO} (${CSV_FILE})"
+else
+  SCENARIO="default"
+  CSV_FILE="sample-data/platform-team-pi-2026-q1.csv"
+  log "Using default sample data (${CSV_FILE})"
+fi
 
 # ── .env setup ───────────────────────────────────────────────────────────────
 if [ ! -f .env ]; then
@@ -75,8 +91,8 @@ log "Applying migrations..."
 ok "Database schema up to date"
 
 # ── Seed demo data (idempotent) ───────────────────────────────────────────────
-log "Seeding demo data (skips if already present)..."
-SEED_OUTPUT=$(DATABASE_URL="$DATABASE_URL" node scripts/seed.js 2>&1) || warn "Seed script failed (non-fatal)"
+log "Seeding demo data for scenario '${SCENARIO}' (skips if already present)..."
+SEED_OUTPUT=$(DATABASE_URL="$DATABASE_URL" node scripts/seed.js --scenario="$SCENARIO" 2>&1) || warn "Seed script failed (non-fatal)"
 echo "$SEED_OUTPUT"
 PI_ID=$(echo "$SEED_OUTPUT" | grep '^PI_ID=' | tail -1 | cut -d= -f2)
 [ -n "$PI_ID" ] && ok "Seed PI ID: $PI_ID" || warn "Could not extract PI ID from seed output"
@@ -127,11 +143,11 @@ done
 
 if $API_READY; then
   ok "API is ready"
-  if [ -n "${PI_ID:-}" ] && [ -f "sample-data/platform-team-pi-2026-q1.csv" ]; then
-    log "Importing sample data into PI $PI_ID..."
+  if [ -n "${PI_ID:-}" ] && [ -f "$CSV_FILE" ]; then
+    log "Importing ${SCENARIO} scenario data into PI $PI_ID..."
     IMPORT_RESULT=$(curl -sf -X POST \
       "http://localhost:3000/api/import/csv?piId=$PI_ID" \
-      -F "file=@sample-data/platform-team-pi-2026-q1.csv" 2>&1) && \
+      -F "file=@${CSV_FILE}" 2>&1) && \
       ok "CSV import result: $IMPORT_RESULT" || \
       warn "CSV import failed (non-fatal): $IMPORT_RESULT"
   else

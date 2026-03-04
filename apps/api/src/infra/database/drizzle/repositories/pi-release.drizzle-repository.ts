@@ -17,15 +17,15 @@ export class PiReleaseDrizzleRepository implements IPiReleaseRepository {
     return row ? this.toDomain(row) : null;
   }
   async save(release: PiRelease): Promise<PiRelease> {
-    const values = { id: release.id, piId: release.piId, name: release.name, date: release.date.toISOString().split('T')[0] };
+    const values = { id: release.id, piId: release.piId, name: release.name, date: release.date.toISOString().split('T')[0], sprintId: release.sprintId };
     const [row] = await this.db.insert(piReleasesTable).values(values)
-      .onConflictDoUpdate({ target: piReleasesTable.id, set: { name: values.name, date: values.date } }).returning();
+      .onConflictDoUpdate({ target: piReleasesTable.id, set: { name: values.name, date: values.date, sprintId: values.sprintId } }).returning();
     return this.toDomain(row);
   }
   async delete(id: string): Promise<void> {
     await this.db.delete(piReleasesTable).where(eq(piReleasesTable.id, id));
   }
   private toDomain(row: PiReleaseRow): PiRelease {
-    return new PiRelease(row.id, row.piId, row.name, new Date(row.date));
+    return new PiRelease(row.id, row.piId, row.name, new Date(row.date), row.sprintId ?? null);
   }
 }

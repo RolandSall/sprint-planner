@@ -72,7 +72,7 @@ export class GetBoardHandler implements IQueryHandler<GetBoardQuery, PiBoardProj
       featureEstimations.set(s.featureId, (featureEstimations.get(s.featureId) ?? 0) + s.estimation);
     }
 
-    const releases = rawReleases.map(r => ({ id: r.id, piId: r.piId, name: r.name, date: r.date.toISOString().split('T')[0] }));
+    const releases = rawReleases.map(r => ({ id: r.id, piId: r.piId, name: r.name, date: r.date.toISOString().split('T')[0], sprintId: r.sprintId }));
 
     return {
       pi: { id: pi.id, teamId: pi.teamId, name: pi.name, startDate: pi.startDate.toISOString().split('T')[0], endDate: pi.endDate.toISOString().split('T')[0], totalCapacity },
@@ -83,7 +83,7 @@ export class GetBoardHandler implements IQueryHandler<GetBoardQuery, PiBoardProj
         stories: (scheduledStories.get(s.id) ?? []).map(toStoryProjection),
       })),
       backlog: allStories.filter(s => !s.sprintId).map(toStoryProjection),
-      features: features.map(f => ({ id: f.id, piId: f.piId, externalId: f.externalId, title: f.title, totalEstimation: featureEstimations.get(f.id) ?? 0, color: f.color } as FeatureProjection)),
+      features: features.map(f => ({ id: f.id, piId: f.piId, externalId: f.externalId, title: f.title, totalEstimation: featureEstimations.get(f.id) ?? 0, color: f.color, releaseId: f.releaseId } as FeatureProjection)),
       warnings,
     };
   }

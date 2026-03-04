@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { StoryProjection, FeatureProjection, SprintProjection } from '@org/shared-types';
+import type { StoryProjection, FeatureProjection, SprintProjection, PiReleaseProjection } from '@org/shared-types';
 import { featureBadgeStyle, resolveFeatureHex } from '../../lib/colors';
 import { api } from '../../lib/api-client';
 import { Badge } from '../ui/Badge';
@@ -14,12 +14,13 @@ interface StoryDrawerProps {
   allStories: StoryProjection[];
   features: FeatureProjection[];
   sprints: SprintProjection[];
+  releases: PiReleaseProjection[];
   piId: string;
   sprintName?: string;
   onClose: () => void;
 }
 
-export function StoryDrawer({ story, allStories, features, sprints, piId, sprintName, onClose }: StoryDrawerProps) {
+export function StoryDrawer({ story, allStories, features, sprints, releases, piId, sprintName, onClose }: StoryDrawerProps) {
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -280,6 +281,15 @@ export function StoryDrawer({ story, allStories, features, sprints, piId, sprint
                   {story.externalDependencySprint != null ? `After Sprint ${story.externalDependencySprint}` : '—'}
                 </span>
               </div>
+              {feature?.releaseId && (() => {
+                const rel = releases.find(r => r.id === feature.releaseId);
+                return rel ? (
+                  <div>
+                    <p className="text-xs text-on-surface-subtle mb-1">Release constraint</p>
+                    <Badge variant="info">Before {rel.name}</Badge>
+                  </div>
+                ) : null;
+              })()}
             </div>
 
             {/* Dependencies */}

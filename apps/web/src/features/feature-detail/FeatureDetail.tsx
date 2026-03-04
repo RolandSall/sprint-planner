@@ -25,10 +25,17 @@ export function FeatureDetail() {
   const [deleteStoryId, setDeleteStoryId] = useState<string | null>(null);
 
   const updateMutation = useMutation({
-    mutationFn: (data: { title: string; color: string }) => api.updateFeature(featureId, data),
+    mutationFn: (data: { title: string; color: string; releaseId?: string | null }) => api.updateFeature(featureId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board', piId] });
       setEditing(false);
+    },
+  });
+
+  const releaseUpdateMutation = useMutation({
+    mutationFn: (releaseId: string | null) => api.updateFeature(featureId, { releaseId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['board', piId] });
     },
   });
 
@@ -69,6 +76,8 @@ export function FeatureDetail() {
     .sort((a, b) => b!.order - a!.order)[0] ?? null;
 
   const hexColor = resolveFeatureHex(feature.id, feature.color);
+
+  const currentRelease = board.releases.find(r => r.id === feature.releaseId);
 
   return (
     <div className="max-w-5xl mx-auto p-6">
@@ -204,6 +213,35 @@ export function FeatureDetail() {
           </div>
         </div>
       </div>
+
+      {/* Release deadline constraint */}
+      {board.releases.length > 0 && (
+        <div className="mb-6 flex items-center gap-3 p-4 rounded-xl border border-border bg-surface-raised">
+          <span className="text-sm font-medium text-on-surface shrink-0">Must complete before:</span>
+          <select
+            className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent flex-1 max-w-xs"
+            value={feature.releaseId ?? ''}
+            onChange={e => {
+              const val = e.target.value || null;
+              releaseUpdateMutation.mutate(val);
+            }}
+            disabled={releaseUpdateMutation.isPending}
+          >
+            <option value="">No release constraint</option>
+            {board.releases.map(r => (
+              <option key={r.id} value={r.id}>
+                {r.name} ({r.date})
+              </option>
+            ))}
+          </select>
+          {currentRelease && (
+            <Badge variant="warning">Deadline: {currentRelease.name}</Badge>
+          )}
+          {releaseUpdateMutation.isPending && (
+            <span className="text-xs text-on-surface-muted">Saving…</span>
+          )}
+        </div>
+      )}
 
       {/* Progress bar */}
       {totalSP > 0 && (

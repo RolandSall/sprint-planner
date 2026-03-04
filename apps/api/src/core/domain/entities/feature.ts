@@ -5,5 +5,6 @@ export class Feature {
     public externalId: string,
     public title: string,
     public color: string | null,
+    public releaseId: string | null = null,
   ) {}
 }

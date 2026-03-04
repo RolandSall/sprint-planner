@@ -17,13 +17,13 @@ export class FeatureDrizzleRepository implements IFeatureRepository {
     return row ? this.toDomain(row) : null;
   }
   async save(feature: Feature): Promise<Feature> {
-    const values = { id: feature.id, piId: feature.piId, externalId: feature.externalId, title: feature.title, color: feature.color };
+    const values = { id: feature.id, piId: feature.piId, externalId: feature.externalId, title: feature.title, color: feature.color, releaseId: feature.releaseId };
     const [row] = await this.db.insert(featuresTable).values(values)
-      .onConflictDoUpdate({ target: featuresTable.id, set: { externalId: values.externalId, title: values.title, color: values.color } }).returning();
+      .onConflictDoUpdate({ target: featuresTable.id, set: { externalId: values.externalId, title: values.title, color: values.color, releaseId: values.releaseId } }).returning();
     return this.toDomain(row);
   }
   async delete(id: string): Promise<void> {
     await this.db.delete(featuresTable).where(eq(featuresTable.id, id));
   }
-  private toDomain(row: FeatureRow): Feature { return new Feature(row.id, row.piId, row.externalId, row.title, row.color ?? null); }
+  private toDomain(row: FeatureRow): Feature { return new Feature(row.id, row.piId, row.externalId, row.title, row.color ?? null, row.releaseId ?? null); }
 }

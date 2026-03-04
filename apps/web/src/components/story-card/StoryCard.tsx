@@ -12,10 +12,11 @@ interface StoryCardProps {
   isBlocked?: boolean;
   dimmed?: boolean;
   isGhost?: boolean;
+  warningLabels?: string[];
   onStoryClick?: (story: StoryProjection) => void;
 }
 
-export function StoryCard({ story, featureTitle, featureHexColor, isDragging = false, isBlocked = false, dimmed = false, isGhost = false, onStoryClick }: StoryCardProps) {
+export function StoryCard({ story, featureTitle, featureHexColor, isDragging = false, isBlocked = false, dimmed = false, isGhost = false, warningLabels = [], onStoryClick }: StoryCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: story.id, disabled: isGhost });
   const style = { transform: CSS.Transform.toString(transform), transition };
   const hexColor = featureHexColor ?? resolveFeatureHex(story.featureId);
@@ -55,6 +56,9 @@ export function StoryCard({ story, featureTitle, featureHexColor, isDragging = f
         {story.externalDependencySprint != null && (
           <Badge variant="info">Ext S{story.externalDependencySprint}</Badge>
         )}
+        {warningLabels.map((label, i) => (
+          <Badge key={i} variant="warning" title={label}>⚠️ {label}</Badge>
+        ))}
       </div>
     </div>
   );

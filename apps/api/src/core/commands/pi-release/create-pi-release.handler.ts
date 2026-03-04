@@ -15,7 +15,7 @@ export class CreatePiReleaseHandler implements ICommandHandler<CreatePiReleaseCo
   ) {}
 
   async execute(command: CreatePiReleaseCommand): Promise<void> {
-    const release = await this.repo.save(new PiRelease(randomUUID(), command.piId, command.name, new Date(command.date)));
+    const release = await this.repo.save(new PiRelease(randomUUID(), command.piId, command.name, new Date(command.date), command.sprintId));
     command.result = release;
     await this.mediator.publish(new PiReleaseCreatedEvent(release.id, release.piId, release.name, command.date));
   }

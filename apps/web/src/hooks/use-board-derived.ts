@@ -3,10 +3,19 @@ import type { PiBoardProjection, FeatureProjection } from '@org/shared-types';
 
 function buildReleaseSprintMap(
   sprints: { id: string; startDate: string | null; endDate: string | null }[],
-  releases: { name: string; date: string }[],
+  releases: { name: string; date: string; sprintId: string | null }[],
 ): Map<string, string[]> {
   const result = new Map<string, string[]>();
   for (const release of releases) {
+    // Priority 1: explicit sprint assignment
+    if (release.sprintId) {
+      const sprint = sprints.find(s => s.id === release.sprintId);
+      if (sprint) {
+        result.set(sprint.id, [...(result.get(sprint.id) ?? []), release.name]);
+        continue;
+      }
+    }
+    // Priority 2: date-based matching
     const rel = new Date(release.date).getTime();
     for (const s of sprints) {
       if (s.startDate && s.endDate) {
@@ -119,6 +128,49 @@ export function useBoardDerivedData(board: PiBoardProjection | undefined) {
     return map;
   }, [board, allStories]);
 
+  // releaseId → max sprint order allowed for that release
+  const releaseMaxOrder = useMemo((): Map<string, number> => {
+    if (!board) return new Map();
+    const map = new Map<string, number>();
+    for (const release of board.releases) {
+      if (release.sprintId) {
+        const sprint = board.sprints.find(s => s.id === release.sprintId);
+        if (sprint) { map.set(release.id, sprint.order); continue; }
+      }
+      const rel = new Date(release.date).getTime();
+      for (const s of board.sprints) {
+        if (s.startDate && s.endDate) {
+          if (rel >= new Date(s.startDate).getTime() && rel <= new Date(s.endDate).getTime()) {
+            map.set(release.id, s.order);
+            break;
+          }
+        }
+      }
+    }
+    return map;
+  }, [board]);
+
+  // storyId → release constraint violation messages
+  const releaseViolationWarnings = useMemo((): Map<string, string[]> => {
+    const map = new Map<string, string[]>();
+    if (!board) return map;
+    for (const sprint of board.sprints) {
+      for (const story of sprint.stories) {
+        const feature = featureMap.get(story.featureId);
+        if (!feature?.releaseId) continue;
+        const maxOrder = releaseMaxOrder.get(feature.releaseId);
+        if (maxOrder != null && sprint.order > maxOrder) {
+          const release = board.releases.find(r => r.id === feature.releaseId);
+          const relSprint = board.sprints.find(s => s.order === maxOrder);
+          map.set(story.id, [
+            `Feature "${feature.title}" must complete before ${release?.name ?? 'release'} (${relSprint?.name ?? `Sprint ${maxOrder}`}), but this story is in ${sprint.name}`,
+          ]);
+        }
+      }
+    }
+    return map;
+  }, [board, featureMap, releaseMaxOrder]);
+
   const hasReleases = (board?.releases.length ?? 0) > 0;
   const hasSprintDates = board?.sprints.some(s => s.startDate) ?? false;
 
@@ -131,6 +183,7 @@ export function useBoardDerivedData(board: PiBoardProjection | undefined) {
     releaseSprintMap,
     totalLoad,
     depOrderWarnings,
+    releaseViolationWarnings,
     hasReleases,
     hasSprintDates,
   };

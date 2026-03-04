@@ -17,6 +17,7 @@ export class UpdatePiReleaseHandler implements ICommandHandler<UpdatePiReleaseCo
     if (!release) throw new NotFoundException(`PiRelease ${command.releaseId} not found`);
     if (command.changes.name !== undefined) release.name = command.changes.name;
     if (command.changes.date !== undefined) release.date = new Date(command.changes.date);
+    if (command.changes.sprintId !== undefined) release.sprintId = command.changes.sprintId ?? null;
     command.result = await this.repo.save(release);
     await this.mediator.publish(new PiReleaseUpdatedEvent(command.releaseId, command.changes));
   }

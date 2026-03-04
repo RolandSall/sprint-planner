@@ -14,15 +14,17 @@ class CreateFeatureRequest implements CreateFeatureApiRequest {
   @IsString() @IsNotEmpty() externalId!: string;
   @IsString() @IsNotEmpty() title!: string;
   @IsOptional() @IsString() color?: string;
+  @IsOptional() @IsString() releaseId?: string | null;
 }
 class UpdateFeatureRequest implements UpdateFeatureApiRequest {
   @IsOptional() @IsString() externalId?: string;
   @IsOptional() @IsString() title?: string;
   @IsOptional() @IsString() color?: string;
+  @IsOptional() releaseId?: string | null;
 }
 
 function toProjection(f: Feature): FeatureProjection {
-  return { id: f.id, piId: f.piId, externalId: f.externalId, title: f.title, totalEstimation: 0, color: f.color };
+  return { id: f.id, piId: f.piId, externalId: f.externalId, title: f.title, totalEstimation: 0, color: f.color, releaseId: f.releaseId };
 }
 
 @ApiTags('features')
@@ -36,7 +38,7 @@ export class FeatureController {
 
   @Post() @HttpCode(HttpStatus.CREATED)
   async create_(@Body() body: CreateFeatureRequest): Promise<FeatureProjection> {
-    const command = new CreateFeatureCommand(body.piId, body.externalId, body.title, body.color);
+    const command = new CreateFeatureCommand(body.piId, body.externalId, body.title, body.color, body.releaseId ?? null);
     await this.mediator.send(command);
     return toProjection(command.result!);
   }

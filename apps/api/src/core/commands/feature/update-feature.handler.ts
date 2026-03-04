@@ -19,6 +19,7 @@ export class UpdateFeatureHandler implements ICommandHandler<UpdateFeatureComman
     if (dto.externalId !== undefined) f.externalId = dto.externalId;
     if (dto.title !== undefined) f.title = dto.title;
     if (dto.color !== undefined) f.color = dto.color;
+    if (dto.releaseId !== undefined) f.releaseId = dto.releaseId ?? null;
     command.result = await this.repo.save(f);
     await this.mediator.publish(new FeatureUpdatedEvent(command.featureId, dto));
   }

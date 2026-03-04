@@ -1,5 +1,5 @@
 {
-  "id": "f03332b8-b9bd-4408-b174-158f8dd07143",
+  "id": "0a32655f-dd1c-4049-b892-001b83fd927f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -203,9 +203,15 @@
           "primaryKey": false,
           "notNull": true
         },
-        "priority": {
-          "name": "priority",
+        "color": {
+          "name": "color",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "release_id": {
+          "name": "release_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         }
@@ -239,6 +245,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "features_release_id_pi_releases_id_fk": {
+          "name": "features_release_id_pi_releases_id_fk",
+          "tableFrom": "features",
+          "tableTo": "pi_releases",
+          "columnsFrom": [
+            "release_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -285,7 +304,7 @@
         },
         "estimation": {
           "name": "estimation",
-          "type": "integer",
+          "type": "real",
           "primaryKey": false,
           "notNull": true
         },
@@ -466,6 +485,12 @@
           "type": "date",
           "primaryKey": false,
           "notNull": true
+        },
+        "sprint_id": {
+          "name": "sprint_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -497,6 +522,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "pi_releases_sprint_id_sprints_id_fk": {
+          "name": "pi_releases_sprint_id_sprints_id_fk",
+          "tableFrom": "pi_releases",
+          "tableTo": "sprints",
+          "columnsFrom": [
+            "sprint_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },

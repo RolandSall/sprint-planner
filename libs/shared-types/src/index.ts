@@ -12,7 +12,7 @@ export interface PiProjection {
   startDate: string; endDate: string; totalCapacity: number;
 }
 export interface PiReleaseProjection {
-  id: string; piId: string; name: string; date: string;
+  id: string; piId: string; name: string; date: string; sprintId: string | null;
 }
 export interface SprintProjection {
   id: string; piId: string; name: string; order: number;
@@ -21,7 +21,7 @@ export interface SprintProjection {
 }
 export interface FeatureProjection {
   id: string; piId: string; externalId: string; title: string;
-  totalEstimation: number; color: string | null;
+  totalEstimation: number; color: string | null; releaseId: string | null;
 }
 export interface StoryProjection {
   id: string; featureId: string; sprintId: string | null;
@@ -41,12 +41,12 @@ export interface PiBoardProjection {
 // --- API Requests ---
 export interface CreateTeamApiRequest { name: string }
 export interface CreatePiApiRequest { teamId: string; name: string; startDate: string; endDate: string }
-export interface CreatePiReleaseApiRequest { piId: string; name: string; date: string }
-export interface UpdatePiReleaseApiRequest { name?: string; date?: string }
+export interface CreatePiReleaseApiRequest { piId: string; name: string; date: string; sprintId?: string | null }
+export interface UpdatePiReleaseApiRequest { name?: string; date?: string; sprintId?: string | null }
 export interface CreateSprintApiRequest { piId: string; name: string; order: number; capacity: number; startDate?: string | null; endDate?: string | null }
 export interface UpdateSprintApiRequest { name?: string; capacity?: number; startDate?: string | null; endDate?: string | null }
-export interface CreateFeatureApiRequest { piId: string; externalId: string; title: string; color?: string }
-export interface UpdateFeatureApiRequest { externalId?: string; title?: string; color?: string }
+export interface CreateFeatureApiRequest { piId: string; externalId: string; title: string; color?: string; releaseId?: string | null }
+export interface UpdateFeatureApiRequest { externalId?: string; title?: string; color?: string; releaseId?: string | null }
 export interface CreateStoryApiRequest {
   featureId: string; externalId: string; title: string; estimation: number;
   externalDependencySprint?: number | null; dependsOnStoryIds?: string[];

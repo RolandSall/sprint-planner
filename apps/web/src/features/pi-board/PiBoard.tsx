@@ -78,7 +78,7 @@ export function PiBoard() {
     allStories, featureMap, sprintMap,
     deliverySprintMap, deliveryFeaturesBySprint,
     releaseSprintMap, totalLoad, depOrderWarnings,
-    hasReleases, hasSprintDates,
+    releaseViolationWarnings, hasReleases, hasSprintDates,
   } = useBoardDerivedData(board);
 
   // ── UI state ──────────────────────────────────────────────────────────────
@@ -347,6 +347,7 @@ export function PiBoard() {
             <ReleaseManager
               piId={piId}
               releases={board.releases}
+              sprints={board.sprints}
               open={showReleaseManager}
               onClose={() => setShowReleaseManager(false)}
             />
@@ -452,6 +453,7 @@ export function PiBoard() {
                   features={board.features}
                   warnings={board.warnings}
                   depOrderWarnings={depOrderWarnings}
+                  releaseViolationWarnings={releaseViolationWarnings}
                   matchingStoryIds={matchingStoryIds}
                   ghostStoryIds={ghostStoryIds}
                   onStoryClick={handleStoryClick}
@@ -487,6 +489,7 @@ export function PiBoard() {
         allStories={allStories}
         features={board.features}
         sprints={board.sprints}
+        releases={board.releases}
         piId={piId}
         sprintName={selectedSprintName}
         onClose={() => setSelectedStoryId(null)}
@@ -495,6 +498,7 @@ export function PiBoard() {
       {/* ── Dialogs ─────────────────────────────────────────────────────── */}
       <CreateFeatureDialog
         piId={piId}
+        releases={board.releases}
         open={showCreateFeature}
         onClose={() => setShowCreateFeature(false)}
       />
@@ -527,13 +531,13 @@ export function PiBoard() {
       />
 
       {/* ── Bottom-center warnings pill ─────────────────────────────── */}
-      {(board.warnings.length > 0 || depOrderWarnings.size > 0) && (
+      {(board.warnings.length > 0 || depOrderWarnings.size > 0 || releaseViolationWarnings.size > 0) && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
           <button
             onClick={() => setShowWarningsPopup(true)}
             className="px-4 py-2 rounded-full shadow-lg border border-orange-300 bg-orange-50 text-orange-700 dark:bg-orange-900/80 dark:text-orange-200 dark:border-orange-700 text-sm font-medium hover:shadow-xl transition-shadow"
           >
-            {board.warnings.length + depOrderWarnings.size} {board.warnings.length + depOrderWarnings.size === 1 ? 'warning' : 'warnings'}
+            {board.warnings.length + depOrderWarnings.size + releaseViolationWarnings.size} {board.warnings.length + depOrderWarnings.size + releaseViolationWarnings.size === 1 ? 'warning' : 'warnings'}
           </button>
         </div>
       )}
@@ -589,11 +593,32 @@ export function PiBoard() {
                   </div>
                 )}
 
-                {board.warnings.length === 0 && depOrderWarnings.size === 0 && (
+                {/* Release constraint violations */}
+                {releaseViolationWarnings.size > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-on-surface-muted uppercase tracking-wide mb-2">Release Constraint Violations</h3>
+                    <ul className="flex flex-col gap-2">
+                      {[...releaseViolationWarnings.entries()].map(([storyId, msgs]) => {
+                        const story = allStories.find(s => s.id === storyId);
+                        return (
+                          <li key={storyId} className="text-sm text-on-surface bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                            <span className="font-semibold font-mono text-xs">{story?.externalId ?? storyId}</span>
+                            {story && <span className="ml-1.5">{story.title}</span>}
+                            <ul className="mt-1 ml-3 list-disc text-xs text-on-surface-muted">
+                              {msgs.map((m, i) => <li key={i}>{m}</li>)}
+                            </ul>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {board.warnings.length === 0 && depOrderWarnings.size === 0 && releaseViolationWarnings.size === 0 && (
                   <p className="text-sm text-on-surface-muted text-center py-4">No warnings.</p>
                 )}
 
-                {(board.warnings.length > 0 || depOrderWarnings.size > 0) && (
+                {(board.warnings.length > 0 || depOrderWarnings.size > 0 || releaseViolationWarnings.size > 0) && (
                   <div className="flex justify-end pt-2 border-t border-border">
                     <Button
                       size="sm"

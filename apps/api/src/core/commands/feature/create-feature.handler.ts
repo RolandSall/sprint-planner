@@ -15,7 +15,9 @@ export class CreateFeatureHandler implements ICommandHandler<CreateFeatureComman
   ) {}
 
   async execute(command: CreateFeatureCommand): Promise<void> {
-    const feature = await this.repo.save(new Feature(randomUUID(), command.piId, command.externalId, command.title, command.color ?? null));
+    const f = new Feature(randomUUID(), command.piId, command.externalId, command.title, command.color ?? null);
+    if (command.releaseId) f.releaseId = command.releaseId;
+    const feature = await this.repo.save(f);
     command.result = feature;
     await this.mediator.publish(new FeatureCreatedEvent(feature.id, feature.piId, feature.externalId, feature.title, feature.color));
   }

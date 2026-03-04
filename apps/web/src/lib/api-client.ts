@@ -38,7 +38,7 @@ export const api = {
   // PI Releases
   createPiRelease: (body: CreatePiReleaseApiRequest) =>
     request<PiReleaseProjection>('/pi-releases', { method: 'POST', body: JSON.stringify(body) }),
-  updatePiRelease: (id: string, body: { name?: string; date?: string }) =>
+  updatePiRelease: (id: string, body: { name?: string; date?: string; sprintId?: string | null }) =>
     request<PiReleaseProjection>(`/pi-releases/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deletePiRelease: (id: string) => request<void>(`/pi-releases/${id}`, { method: 'DELETE' }),
 

@@ -4,5 +4,6 @@ export class PiRelease {
     public readonly piId: string,
     public name: string,
     public date: Date,
+    public sprintId: string | null = null,
   ) {}
 }

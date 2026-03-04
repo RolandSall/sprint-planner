@@ -1,0 +1,21 @@
+feature_id,feature_name,story_id,story_title,estimation,depends_on,external_dependency_sprint
+F001,User Authentication,S001,Database schema & migrations,5,,
+F001,User Authentication,S002,Registration API endpoint,3,S001,
+F001,User Authentication,S003,Login & session management,4,S001,
+F001,User Authentication,S004,JWT middleware & token refresh,3,S002|S003,
+F001,User Authentication,S005,Password reset & email flow,3,S003,2
+F002,API Gateway,S006,Gateway routing config,3.5,,1
+F002,API Gateway,S007,Rate limiting & throttling,3,S006,
+F002,API Gateway,S008,Service discovery integration,4,S006,
+F002,API Gateway,S009,Health check endpoints,2,S007|S008,
+F003,Dashboard UI,S010,Layout & navigation shell,4,,1
+F003,Dashboard UI,S011,Auth integration with gateway,3,S010|S004,
+F003,Dashboard UI,S012,User profile page,3,S011,
+F003,Dashboard UI,S013,Settings panel,2,S011,
+F004,Search Service,S014,Elasticsearch setup,5,,
+F004,Search Service,S015,Indexing pipeline,4,S014,
+F004,Search Service,S016,Search API endpoint,3,S015,
+F004,Search Service,S017,Autocomplete suggestions,2,S016,
+F005,Monitoring,S018,Prometheus metrics,3,,
+F005,Monitoring,S019,Grafana dashboards,2,S018,
+F005,Monitoring,S020,Alerting rules,2,S018,

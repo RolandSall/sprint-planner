@@ -1,0 +1,9 @@
+feature_id,feature_name,story_id,story_title,estimation,depends_on,external_dependency_sprint
+F001,User Authentication,S001,Database schema,3,,
+F001,User Authentication,S002,Login API,3,S001,
+F001,User Authentication,S003,JWT middleware,2,S002,
+F002,Dashboard UI,S004,Layout shell,4,,
+F002,Dashboard UI,S005,Navigation bar,2,S004,
+F002,Dashboard UI,S006,Theme setup,2,,
+F003,Notifications,S007,Email service,3,,
+F003,Notifications,S008,In-app alerts,2,S007,

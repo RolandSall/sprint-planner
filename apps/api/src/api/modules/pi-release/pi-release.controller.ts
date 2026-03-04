@@ -13,15 +13,17 @@ class CreatePiReleaseRequest implements CreatePiReleaseApiRequest {
   @IsString() @IsNotEmpty() piId!: string;
   @IsString() @IsNotEmpty() name!: string;
   @IsDateString() date!: string;
+  @IsOptional() @IsString() sprintId?: string | null;
 }
 
 class UpdatePiReleaseRequest implements UpdatePiReleaseApiRequest {
   @IsOptional() @IsString() name?: string;
   @IsOptional() @IsDateString() date?: string;
+  @IsOptional() sprintId?: string | null;
 }
 
 function toProjection(r: PiRelease): PiReleaseProjection {
-  return { id: r.id, piId: r.piId, name: r.name, date: r.date.toISOString().split('T')[0] };
+  return { id: r.id, piId: r.piId, name: r.name, date: r.date.toISOString().split('T')[0], sprintId: r.sprintId };
 }
 
 @ApiTags('pi-releases')
@@ -35,7 +37,7 @@ export class PiReleaseController {
 
   @Post() @HttpCode(HttpStatus.CREATED)
   async createRelease(@Body() body: CreatePiReleaseRequest): Promise<PiReleaseProjection> {
-    const command = new CreatePiReleaseCommand(body.piId, body.name, body.date);
+    const command = new CreatePiReleaseCommand(body.piId, body.name, body.date, body.sprintId ?? null);
     await this.mediator.send(command);
     return toProjection(command.result!);
   }

@@ -5,6 +5,6 @@ export class UpdateFeatureCommand implements ICommand {
   result?: Feature;
   constructor(
     public readonly featureId: string,
-    public readonly changes: { externalId?: string; title?: string; color?: string },
+    public readonly changes: { externalId?: string; title?: string; color?: string; releaseId?: string | null },
   ) {}
 }

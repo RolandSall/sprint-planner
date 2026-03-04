@@ -7,5 +7,6 @@ export class CreatePiReleaseCommand implements ICommand {
     public readonly piId: string,
     public readonly name: string,
     public readonly date: string,
+    public readonly sprintId: string | null = null,
   ) {}
 }

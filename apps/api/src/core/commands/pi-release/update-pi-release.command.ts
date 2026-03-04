@@ -5,6 +5,6 @@ export class UpdatePiReleaseCommand implements ICommand {
   result?: PiRelease;
   constructor(
     public readonly releaseId: string,
-    public readonly changes: { name?: string; date?: string },
+    public readonly changes: { name?: string; date?: string; sprintId?: string | null },
   ) {}
 }

@@ -8,5 +8,6 @@ export class CreateFeatureCommand implements ICommand {
     public readonly externalId: string,
     public readonly title: string,
     public readonly color?: string,
+    public readonly releaseId?: string | null,
   ) {}
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CreateFeatureApiRequest } from '@org/shared-types';
+import type { CreateFeatureApiRequest, PiReleaseProjection } from '@org/shared-types';
 import { api } from '../../lib/api-client';
 import { FEATURE_COLOR_PRESETS } from '../../lib/colors';
 import { Button } from '../ui/Button';
@@ -9,23 +9,26 @@ import { Dialog } from '../ui/Dialog';
 
 interface CreateFeatureDialogProps {
   piId: string;
+  releases: PiReleaseProjection[];
   open: boolean;
   onClose: () => void;
   onCreated?: () => void;
 }
 
-export function CreateFeatureDialog({ piId, open, onClose, onCreated }: CreateFeatureDialogProps) {
+export function CreateFeatureDialog({ piId, releases, open, onClose, onCreated }: CreateFeatureDialogProps) {
   const qc = useQueryClient();
 
   const [externalId, setExternalId] = useState('');
   const [title, setTitle] = useState('');
   const [color, setColor] = useState(FEATURE_COLOR_PRESETS[0]);
+  const [releaseId, setReleaseId] = useState('');
 
   useEffect(() => {
     if (open) {
       setExternalId('');
       setTitle('');
       setColor(FEATURE_COLOR_PRESETS[0]);
+      setReleaseId('');
     }
   }, [open]);
 
@@ -45,6 +48,7 @@ export function CreateFeatureDialog({ piId, open, onClose, onCreated }: CreateFe
       externalId,
       title,
       color,
+      releaseId: releaseId || null,
     });
   };
 
@@ -105,6 +109,24 @@ export function CreateFeatureDialog({ piId, open, onClose, onCreated }: CreateFe
             </span>
           </div>
         </div>
+
+        {/* Release constraint (optional) */}
+        {releases.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-on-surface">Must complete before release (optional)</label>
+            <select
+              className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+              value={releaseId}
+              onChange={e => setReleaseId(e.target.value)}
+              disabled={mutation.isPending}
+            >
+              <option value="">No constraint</option>
+              {releases.map(r => (
+                <option key={r.id} value={r.id}>{r.name} ({r.date})</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {mutation.isError && (
           <p className="text-xs text-danger-fg">

@@ -1,0 +1,46 @@
+feature_id,feature_name,story_id,story_title,estimation,depends_on,external_dependency_sprint
+F001,User Authentication,S001,Database schema & migrations,5,,
+F001,User Authentication,S002,Registration API,3,S001,
+F001,User Authentication,S003,Login & session mgmt,4,S001,
+F001,User Authentication,S004,JWT middleware & refresh,3,S002|S003,
+F001,User Authentication,S005,Password reset flow,3,S003,2
+F001,User Authentication,S006,OAuth2 provider integration,4,S004,3
+F001,User Authentication,S007,Multi-factor auth,5,S006,
+F002,API Gateway,S008,Gateway routing config,3.5,,1
+F002,API Gateway,S009,Rate limiting & throttling,3,S008,
+F002,API Gateway,S010,Service discovery,4,S008,
+F002,API Gateway,S011,Health check endpoints,2,S009|S010,
+F002,API Gateway,S012,API versioning layer,3,S011,
+F002,API Gateway,S013,Request/response logging,2,S012,
+F003,Dashboard UI,S014,Layout & navigation shell,4,,1
+F003,Dashboard UI,S015,Auth integration,3,S014|S004,
+F003,Dashboard UI,S016,User profile page,3,S015,
+F003,Dashboard UI,S017,Settings panel,2,S015,
+F003,Dashboard UI,S018,Admin dashboard,5,S016|S017,
+F003,Dashboard UI,S019,Real-time notifications widget,3,S015|S030,
+F004,Search Service,S020,Elasticsearch cluster setup,5,,
+F004,Search Service,S021,Indexing pipeline,4,S020,
+F004,Search Service,S022,Search API endpoint,3,S021,
+F004,Search Service,S023,Autocomplete & suggestions,2,S022,
+F004,Search Service,S024,Faceted search filters,3,S022,
+F004,Search Service,S025,Search analytics tracking,2,S023|S024,
+F005,Monitoring & Observability,S026,Prometheus metrics setup,3,,
+F005,Monitoring & Observability,S027,Grafana dashboards,2,S026,
+F005,Monitoring & Observability,S028,Alerting rules & PagerDuty,3,S026,2
+F005,Monitoring & Observability,S029,Distributed tracing,4,S026|S013,
+F005,Monitoring & Observability,S030,Log aggregation pipeline,3,S026,
+F006,Payment Processing,S031,Payment gateway integration,5,,2
+F006,Payment Processing,S032,Subscription billing,4,S031,
+F006,Payment Processing,S033,Invoice generation,3,S032,
+F006,Payment Processing,S034,Payment webhook handler,3,S031,
+F006,Payment Processing,S035,Refund & dispute flow,4,S032|S034,
+F006,Payment Processing,S036,PCI compliance audit,2,S035,
+F007,Data Pipeline,S037,Event bus setup (Kafka),5,,1
+F007,Data Pipeline,S038,CDC connectors,4,S037,
+F007,Data Pipeline,S039,ETL transformations,3,S038,
+F007,Data Pipeline,S040,Data warehouse loading,4,S039,
+F007,Data Pipeline,S041,Reporting views,2,S040,
+F008,Mobile API,S042,API schema for mobile,3,S012,
+F008,Mobile API,S043,Push notification service,3,S042|S030,
+F008,Mobile API,S044,Offline sync protocol,5,S042,
+F008,Mobile API,S045,Mobile auth flow,3,S042|S007,

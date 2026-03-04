@@ -14,6 +14,7 @@ interface SprintColumnProps {
   features: FeatureProjection[];
   warnings: SchedulingWarning[];
   depOrderWarnings: Map<string, string[]>;
+  releaseViolationWarnings: Map<string, string[]>;
   matchingStoryIds?: Set<string> | null;
   ghostStoryIds?: Set<string>;
   onStoryClick?: (story: StoryProjection) => void;
@@ -38,8 +39,8 @@ function formatDate(dateStr: string | null): string {
 }
 
 export function SprintColumn({
-  sprint, piId, stories, features, warnings, depOrderWarnings, matchingStoryIds = null,
-  ghostStoryIds, onStoryClick, releaseNames = [], deliveryFeatureNames = [],
+  sprint, piId, stories, features, warnings, depOrderWarnings, releaseViolationWarnings,
+  matchingStoryIds = null, ghostStoryIds, onStoryClick, releaseNames = [], deliveryFeatureNames = [],
 }: SprintColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: sprint.id });
   const [showEditor, setShowEditor] = useState(false);
@@ -112,18 +113,24 @@ export function SprintColumn({
 
       <div ref={setNodeRef} className="flex-1 min-h-[200px] p-2 flex flex-col gap-2">
         <SortableContext items={stories.map(s => s.id)} strategy={verticalListSortingStrategy}>
-          {stories.map(story => (
-            <StoryCard
-              key={story.id}
-              story={story}
-              featureTitle={featureMap.get(story.featureId)?.title}
-              featureHexColor={resolveFeatureHex(story.featureId, featureMap.get(story.featureId)?.color)}
-              isBlocked={story.externalDependencySprint != null && story.externalDependencySprint >= sprint.order}
-              dimmed={matchingStoryIds !== null && !matchingStoryIds.has(story.id)}
-              isGhost={ghostStoryIds?.has(story.id)}
-              onStoryClick={onStoryClick}
-            />
-          ))}
+          {stories.map(story => {
+            const warnLabels: string[] = [];
+            if (depOrderWarnings.has(story.id)) warnLabels.push('DEP');
+            if (releaseViolationWarnings.has(story.id)) warnLabels.push('RELEASE');
+            return (
+              <StoryCard
+                key={story.id}
+                story={story}
+                featureTitle={featureMap.get(story.featureId)?.title}
+                featureHexColor={resolveFeatureHex(story.featureId, featureMap.get(story.featureId)?.color)}
+                isBlocked={story.externalDependencySprint != null && story.externalDependencySprint >= sprint.order}
+                dimmed={matchingStoryIds !== null && !matchingStoryIds.has(story.id)}
+                isGhost={ghostStoryIds?.has(story.id)}
+                warningLabels={warnLabels}
+                onStoryClick={onStoryClick}
+              />
+            );
+          })}
         </SortableContext>
         {stories.length === 0 && (
           <div className="flex-1 flex items-center justify-center text-xs text-on-surface-subtle border-2 border-dashed border-border-subtle rounded-lg py-8">
