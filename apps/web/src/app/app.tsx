@@ -2,7 +2,7 @@ import { Routes, Route, Link } from 'react-router-dom';
 import { PiList } from '../features/pi-setup/PiList';
 import { PiSetup } from '../features/pi-setup/PiSetup';
 import { PiBoard } from '../features/pi-board/PiBoard';
-import { ImportCsv } from '../features/import/ImportCsv';
+import { ImportData } from '../features/import/ImportData';
 import { FeatureDetail } from '../features/feature-detail/FeatureDetail';
 import { ThemeToggle } from '../components/ui/ThemeToggle';
 
@@ -19,7 +19,7 @@ export function App() {
           <Route path="/" element={<PiList />} />
           <Route path="/new" element={<PiSetup />} />
           <Route path="/pi/:piId" element={<PiBoard />} />
-          <Route path="/pi/:piId/import" element={<ImportCsv />} />
+          <Route path="/pi/:piId/import" element={<ImportData />} />
           <Route path="/pi/:piId/features/:featureId" element={<FeatureDetail />} />
         </Routes>
       </main>

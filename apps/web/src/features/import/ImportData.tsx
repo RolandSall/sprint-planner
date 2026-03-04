@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCsvImport } from '../../hooks/use-csv-import';
+import { useImport } from '../../hooks/use-import';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import type { ImportApiResponse } from '@org/shared-types';
 
-export function ImportCsv() {
+export function ImportData() {
   const { piId = '' } = useParams<{ piId: string }>();
   const navigate = useNavigate();
-  const importCsv = useCsvImport(piId);
+  const importData = useImport(piId);
 
   const [isDragOver, setIsDragOver] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -21,20 +21,21 @@ export function ImportCsv() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const processFile = useCallback(async (f: File) => {
-    if (!f.name.toLowerCase().endsWith('.csv')) {
-      setError('Only .csv files are supported.');
+    const ext = f.name.toLowerCase().split('.').pop();
+    if (ext !== 'csv' && ext !== 'xlsx') {
+      setError('Only .csv and .xlsx files are supported.');
       return;
     }
     setFile(f);
     setError(null);
     setResult(null);
     try {
-      const res = await importCsv.mutateAsync(f);
+      const res = await importData.mutateAsync(f);
       setResult(res);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Import failed.');
     }
-  }, [importCsv]);
+  }, [importData]);
 
   // ── Drag handlers ─────────────────────────────────────────────────────────
   const onDragEnter = useCallback((e: React.DragEvent) => {
@@ -81,14 +82,14 @@ export function ImportCsv() {
     };
   }, []);
 
-  const isPending = importCsv.isPending;
+  const isPending = importData.isPending;
 
   return (
     <div className="max-w-2xl mx-auto p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-on-surface">Import CSV</h1>
+          <h1 className="text-2xl font-bold text-on-surface">Import Data</h1>
           <p className="text-sm text-on-surface-muted mt-1">
             Drag a file from your desktop and drop it anywhere in the box below.
           </p>
@@ -103,7 +104,7 @@ export function ImportCsv() {
       {/* Expected format */}
       <div className="bg-surface-raised border border-border rounded-lg px-4 py-3 mb-6 text-xs text-on-surface-subtle font-mono leading-relaxed">
         <span className="font-semibold text-on-surface not-italic font-sans text-xs">Expected columns:</span><br />
-        feature_id, feature_name, feature_priority, story_id, story_title,<br />
+        feature_id, feature_name, story_id, story_title,<br />
         estimation, depends_on, external_dependency_sprint
       </div>
 
@@ -127,7 +128,7 @@ export function ImportCsv() {
         <input
           ref={inputRef}
           type="file"
-          accept=".csv"
+          accept=".csv,.xlsx"
           className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) processFile(f); e.target.value = ''; }}
         />
@@ -146,9 +147,9 @@ export function ImportCsv() {
           <>
             <div className="text-5xl mb-3">📄</div>
             <p className="text-on-surface-muted font-medium text-lg">
-              {file && result ? file.name : 'Drop your CSV here'}
+              {file && result ? file.name : 'Drop your file here'}
             </p>
-            <p className="text-on-surface-subtle text-sm mt-1">or click to browse</p>
+            <p className="text-on-surface-subtle text-sm mt-1">or click to browse (.csv, .xlsx)</p>
           </>
         )}
       </div>

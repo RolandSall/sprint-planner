@@ -1,6 +1,6 @@
 import type { ImportApiResponse } from '@org/shared-types';
 
-export const CSV_PARSER = Symbol('CSV_PARSER');
+export const IMPORT_PARSER = Symbol('IMPORT_PARSER');
 
 export interface ParsedImportData {
   features: Map<string, { externalId: string; name: string }>;
@@ -11,6 +11,6 @@ export interface ParsedImportData {
   errors: ImportApiResponse['errors'];
 }
 
-export interface ICsvParser {
-  parse(csvBuffer: Buffer): ParsedImportData;
+export interface IImportParser {
+  parse(buffer: Buffer, filename: string): ParsedImportData;
 }

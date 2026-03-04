@@ -400,7 +400,7 @@ export function PiBoard() {
           <Button variant="secondary" size="sm" onClick={() => setShowCreateFeature(true)}>+ Feature</Button>
           <Button variant="secondary" size="sm" onClick={() => setShowCreateStory(true)}>+ Story</Button>
           <Link to={`/pi/${piId}/import`}>
-            <Button variant="secondary" size="sm">Import CSV</Button>
+            <Button variant="secondary" size="sm">Import</Button>
           </Link>
           <Button size="sm" onClick={async () => {
             const result = await autoSchedule.mutateAsync();

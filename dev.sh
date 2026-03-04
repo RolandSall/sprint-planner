@@ -128,7 +128,7 @@ done
 if $API_READY; then
   ok "API is ready"
   if [ -n "${PI_ID:-}" ] && [ -f "sample-data/platform-team-pi-2026-q1.csv" ]; then
-    log "Importing CSV sample data into PI $PI_ID..."
+    log "Importing sample data into PI $PI_ID..."
     IMPORT_RESULT=$(curl -sf -X POST \
       "http://localhost:3000/api/import/csv?piId=$PI_ID" \
       -F "file=@sample-data/platform-team-pi-2026-q1.csv" 2>&1) && \

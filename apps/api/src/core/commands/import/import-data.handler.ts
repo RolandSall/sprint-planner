@@ -1,31 +1,31 @@
 import { Inject, Injectable, BadRequestException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler, MediatorBus } from '@rolandsall24/nest-mediator';
-import { ImportCsvCommand } from './import-csv.command';
+import { ImportDataCommand } from './import-data.command';
 import { IFeatureRepository, FEATURE_REPOSITORY } from '../../repositories/feature.repository.interface';
 import { IStoryRepository, STORY_REPOSITORY } from '../../repositories/story.repository.interface';
 import { IStoryDependencyRepository, STORY_DEPENDENCY_REPOSITORY } from '../../repositories/story-dependency.repository.interface';
-import { ICsvParser, CSV_PARSER } from '../../ports/csv-parser.port';
+import { IImportParser, IMPORT_PARSER } from '../../ports/import-parser.port';
 import { Feature } from '../../domain/entities/feature';
 import { Story } from '../../domain/entities/story';
 import { StoryDependency } from '../../domain/entities/story-dependency';
-import { CsvImportedEvent } from '../../events/import/csv-imported.event';
+import { DataImportedEvent } from '../../events/import/data-imported.event';
 import { randomUUID } from 'crypto';
 
 @Injectable()
-@CommandHandler(ImportCsvCommand)
-export class ImportCsvHandler implements ICommandHandler<ImportCsvCommand> {
+@CommandHandler(ImportDataCommand)
+export class ImportDataHandler implements ICommandHandler<ImportDataCommand> {
   constructor(
-    @Inject(CSV_PARSER) private readonly csvParser: ICsvParser,
+    @Inject(IMPORT_PARSER) private readonly parser: IImportParser,
     @Inject(FEATURE_REPOSITORY) private readonly featureRepo: IFeatureRepository,
     @Inject(STORY_REPOSITORY) private readonly storyRepo: IStoryRepository,
     @Inject(STORY_DEPENDENCY_REPOSITORY) private readonly depRepo: IStoryDependencyRepository,
     private readonly mediator: MediatorBus,
   ) {}
 
-  async execute(command: ImportCsvCommand): Promise<void> {
+  async execute(command: ImportDataCommand): Promise<void> {
     if (!command.piId) throw new BadRequestException('piId is required');
 
-    const { features, stories, errors } = this.csvParser.parse(command.csvBuffer);
+    const { features, stories, errors } = this.parser.parse(command.fileBuffer, command.filename);
 
     if (errors.length > 0) {
       command.result = { imported: 0, skipped: 0, errors };
@@ -68,6 +68,6 @@ export class ImportCsvHandler implements ICommandHandler<ImportCsvCommand> {
     }
 
     command.result = { imported, skipped: stories.length - imported, errors };
-    await this.mediator.publish(new CsvImportedEvent(command.piId, imported, stories.length - imported));
+    await this.mediator.publish(new DataImportedEvent(command.piId, imported, stories.length - imported));
   }
 }

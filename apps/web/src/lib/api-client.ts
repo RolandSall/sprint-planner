@@ -77,9 +77,9 @@ export const api = {
     request<SuggestFixesApiResponse>('/scheduling/suggest-fixes', { method: 'POST', body: JSON.stringify({ piId }) }),
 
   // Import
-  importCsv: (piId: string, file: File): Promise<ImportApiResponse> => {
+  importData: (piId: string, file: File): Promise<ImportApiResponse> => {
     const form = new FormData();
     form.append('file', file);
-    return fetch(`${BASE}/import/csv?piId=${piId}`, { method: 'POST', body: form }).then(r => r.json());
+    return fetch(`${BASE}/import?piId=${piId}`, { method: 'POST', body: form }).then(r => r.json());
   },
 };

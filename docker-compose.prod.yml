@@ -5,7 +5,7 @@ services:
       - "4200:4200"
     environment:
       EVENT_STORE_MODE: ${EVENT_STORE_MODE:-audit}
-      MEDIATOR_FLOW_ENABLED: ${MEDIATOR_FLOW_ENABLED:-false}
+      MEDIATOR_FLOW_ENABLED: ${MEDIATOR_FLOW_ENABLED:-true}
       MEDIATOR_FLOW_URL: ${MEDIATOR_FLOW_URL:-http://mediatorflow:4800}
       MEDIATOR_FLOW_SERVICE_NAME: ${MEDIATOR_FLOW_SERVICE_NAME:-pi-planning}
     volumes:
@@ -13,8 +13,6 @@ services:
 
   mediatorflow:
     image: rolandsall24/mediatorflow:latest
-    profiles:
-      - mediatorflow
     ports:
       - "4800:4800"
     volumes:

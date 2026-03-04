@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ImportController } from './import.controller';
-import { ImportCsvHandler } from '../../../core/commands/import/import-csv.handler';
-import { CSV_PARSER } from '../../../core/ports/csv-parser.port';
-import { CsvImportService } from '../../../infra/csv/csv-import.service';
+import { ImportDataHandler } from '../../../core/commands/import/import-data.handler';
+import { IMPORT_PARSER } from '../../../core/ports/import-parser.port';
+import { ImportParserService } from '../../../infra/parsers/import-parser.service';
 import { FEATURE_REPOSITORY } from '../../../core/repositories/feature.repository.interface';
 import { STORY_REPOSITORY } from '../../../core/repositories/story.repository.interface';
 import { STORY_DEPENDENCY_REPOSITORY } from '../../../core/repositories/story-dependency.repository.interface';
@@ -13,8 +13,8 @@ import { StoryDependencyDrizzleRepository } from '../../../infra/database/drizzl
 @Module({
   controllers: [ImportController],
   providers: [
-    ImportCsvHandler,
-    { provide: CSV_PARSER, useClass: CsvImportService },
+    ImportDataHandler,
+    { provide: IMPORT_PARSER, useClass: ImportParserService },
     { provide: FEATURE_REPOSITORY, useClass: FeatureDrizzleRepository },
     { provide: STORY_REPOSITORY, useClass: StoryDrizzleRepository },
     { provide: STORY_DEPENDENCY_REPOSITORY, useClass: StoryDependencyDrizzleRepository },
