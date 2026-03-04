@@ -1,4 +1,3 @@
-import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import type { StoryProjection, FeatureProjection } from '@org/shared-types';
 import { StoryCard } from '../story-card/StoryCard';

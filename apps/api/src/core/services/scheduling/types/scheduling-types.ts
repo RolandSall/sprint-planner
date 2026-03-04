@@ -46,7 +46,6 @@ export interface InternalSuggestedMove {
 export interface ValidationInput {
   story: Story;
   targetSprint: Sprint;
-  allSprints: Sprint[];
   dependencies: StoryDependency[];
   storySprintMap: Map<string, Sprint>;
   sprintCurrentLoad: Map<string, number>;

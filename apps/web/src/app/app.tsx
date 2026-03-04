@@ -1,4 +1,3 @@
-import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { PiList } from '../features/pi-setup/PiList';
 import { PiSetup } from '../features/pi-setup/PiSetup';

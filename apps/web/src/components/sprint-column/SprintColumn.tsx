@@ -1,4 +1,3 @@
-import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { SprintProjection, StoryProjection, FeatureProjection, SchedulingWarning } from '@org/shared-types';

@@ -1,10 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, inArray } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { DRIZZLE_CLIENT, DrizzleDb } from '../db';
 import { storiesTable, StoryRow } from '../schema/stories.schema';
-import { sprintsTable } from '../schema/sprints.schema';
 import { featuresTable } from '../schema/features.schema';
-import { pisTable } from '../schema/pis.schema';
 import { IStoryRepository } from '../../../../core/repositories/story.repository.interface';
 import { Story } from '../../../../core/domain/entities/story';
 
