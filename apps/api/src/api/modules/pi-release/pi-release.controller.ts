@@ -4,8 +4,7 @@ import { IsString, IsNotEmpty, IsDateString, IsOptional } from 'class-validator'
 import { CreatePiReleaseUseCase } from '../../../core/use-cases/pi-release/create-pi-release.use-case';
 import { DeletePiReleaseUseCase } from '../../../core/use-cases/pi-release/delete-pi-release.use-case';
 import { UpdatePiReleaseUseCase } from '../../../core/use-cases/pi-release/update-pi-release.use-case';
-import { IPiReleaseRepository, PI_RELEASE_REPOSITORY } from '../../../core/repositories/pi-release.repository.interface';
-import { Inject } from '@nestjs/common';
+import { FindPiReleasesUseCase } from '../../../core/use-cases/pi-release/find-pi-releases.use-case';
 import type { PiReleaseProjection, CreatePiReleaseApiRequest, UpdatePiReleaseApiRequest } from '@org/shared-types';
 import { PiRelease } from '../../../core/domain/entities/pi-release';
 
@@ -31,11 +30,11 @@ export class PiReleaseController {
     private readonly create: CreatePiReleaseUseCase,
     private readonly update: UpdatePiReleaseUseCase,
     private readonly remove: DeletePiReleaseUseCase,
-    @Inject(PI_RELEASE_REPOSITORY) private readonly repo: IPiReleaseRepository,
+    private readonly findReleases: FindPiReleasesUseCase,
   ) {}
 
   @Get() async findByPi(@Query('piId') piId: string): Promise<PiReleaseProjection[]> {
-    return (await this.repo.findByPiId(piId)).map(toProjection);
+    return (await this.findReleases.byPiId(piId)).map(toProjection);
   }
 
   @Post() @HttpCode(HttpStatus.CREATED)

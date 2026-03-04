@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { parse } from 'csv-parse/sync';
-import type { ImportApiResponse } from '@org/shared-types';
+import type { ICsvParser, ParsedImportData } from '../../core/ports/csv-parser.port';
 
 export interface CsvRow {
   feature_id: string;
@@ -12,17 +12,8 @@ export interface CsvRow {
   external_dependency_sprint: string;
 }
 
-export interface ParsedImportData {
-  features: Map<string, { externalId: string; name: string }>;
-  stories: Array<{
-    featureExternalId: string; externalId: string; title: string; estimation: number;
-    dependsOnExternalIds: string[]; externalDependencySprint: number | null;
-  }>;
-  errors: ImportApiResponse['errors'];
-}
-
 @Injectable()
-export class CsvImportService {
+export class CsvImportService implements ICsvParser {
   parse(csvBuffer: Buffer): ParsedImportData {
     const records = parse(csvBuffer, {
       columns: true, skip_empty_lines: true, trim: true,
@@ -30,7 +21,7 @@ export class CsvImportService {
 
     const features = new Map<string, { externalId: string; name: string }>();
     const stories: ParsedImportData['stories'] = [];
-    const errors: ImportApiResponse['errors'] = [];
+    const errors: ParsedImportData['errors'] = [];
 
     records.forEach((row, index) => {
       const rowNum = index + 2; // 1-indexed + header

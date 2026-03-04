@@ -5,6 +5,7 @@ import { UpdateStoryUseCase } from '../../../core/use-cases/story/update-story.u
 import { DeleteStoryUseCase } from '../../../core/use-cases/story/delete-story.use-case';
 import { MoveStoryUseCase } from '../../../core/use-cases/story/move-story.use-case';
 import { FindStoriesUseCase } from '../../../core/use-cases/story/find-stories.use-case';
+import { ValidateMoveUseCase } from '../../../core/use-cases/scheduling/validate-move.use-case';
 import { SchedulingService } from '../../../core/services/scheduling/scheduling.service';
 import { STORY_REPOSITORY } from '../../../core/repositories/story.repository.interface';
 import { STORY_DEPENDENCY_REPOSITORY } from '../../../core/repositories/story-dependency.repository.interface';
@@ -16,7 +17,8 @@ import { SprintDrizzleRepository } from '../../../infra/database/drizzle/reposit
 @Module({
   controllers: [StoryController],
   providers: [
-    CreateStoryUseCase, UpdateStoryUseCase, DeleteStoryUseCase, MoveStoryUseCase, FindStoriesUseCase, SchedulingService,
+    CreateStoryUseCase, UpdateStoryUseCase, DeleteStoryUseCase, MoveStoryUseCase,
+    FindStoriesUseCase, ValidateMoveUseCase, SchedulingService,
     { provide: STORY_REPOSITORY, useClass: StoryDrizzleRepository },
     { provide: STORY_DEPENDENCY_REPOSITORY, useClass: StoryDependencyDrizzleRepository },
     { provide: SPRINT_REPOSITORY, useClass: SprintDrizzleRepository },

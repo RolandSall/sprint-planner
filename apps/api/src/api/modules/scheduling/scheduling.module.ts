@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { SchedulingController } from './scheduling.controller';
 import { SchedulingService } from '../../../core/services/scheduling/scheduling.service';
-import { MoveStoryUseCase } from '../../../core/use-cases/story/move-story.use-case';
+import { AutoScheduleUseCase } from '../../../core/use-cases/scheduling/auto-schedule.use-case';
+import { SuggestFixesUseCase } from '../../../core/use-cases/scheduling/suggest-fixes.use-case';
 import { STORY_REPOSITORY } from '../../../core/repositories/story.repository.interface';
 import { SPRINT_REPOSITORY } from '../../../core/repositories/sprint.repository.interface';
 import { STORY_DEPENDENCY_REPOSITORY } from '../../../core/repositories/story-dependency.repository.interface';
@@ -12,7 +13,7 @@ import { StoryDependencyDrizzleRepository } from '../../../infra/database/drizzl
 @Module({
   controllers: [SchedulingController],
   providers: [
-    SchedulingService, MoveStoryUseCase,
+    SchedulingService, AutoScheduleUseCase, SuggestFixesUseCase,
     { provide: STORY_REPOSITORY, useClass: StoryDrizzleRepository },
     { provide: SPRINT_REPOSITORY, useClass: SprintDrizzleRepository },
     { provide: STORY_DEPENDENCY_REPOSITORY, useClass: StoryDependencyDrizzleRepository },
