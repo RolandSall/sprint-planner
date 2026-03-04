@@ -21,8 +21,15 @@ import { PiReleaseModule } from '../api/modules/pi-release/pi-release.module';
       eventStore: {
         type: 'postgres',
         useExistingPool: DATABASE_POOL,
-        mode: 'audit',
+        mode: (process.env.EVENT_STORE_MODE as 'audit' | 'source') || 'audit',
       },
+      ...(process.env.MEDIATOR_FLOW_ENABLED === 'true' && {
+        mediatorFlow: {
+          enabled: true,
+          collectorUrl: process.env.MEDIATOR_FLOW_URL || 'http://localhost:4800',
+          serviceName: process.env.MEDIATOR_FLOW_SERVICE_NAME || 'pi-planning',
+        },
+      }),
     }),
     TeamModule, PiModule, SprintModule, FeatureModule,
     StoryModule, SchedulingModule, ImportModule, BoardModule, PiReleaseModule,

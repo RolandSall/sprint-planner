@@ -26,6 +26,10 @@ services:
       DATABASE_URL: postgres://${DB_USER:-planning}:${DB_PASSWORD:-planning}@db:5432/pi_planning
       NODE_ENV: production
       PORT: 3000
+      EVENT_STORE_MODE: ${EVENT_STORE_MODE:-audit}
+      MEDIATOR_FLOW_ENABLED: ${MEDIATOR_FLOW_ENABLED:-false}
+      MEDIATOR_FLOW_URL: ${MEDIATOR_FLOW_URL:-http://mediatorflow:4800}
+      MEDIATOR_FLOW_SERVICE_NAME: ${MEDIATOR_FLOW_SERVICE_NAME:-pi-planning}
     ports:
       - "3000:3000"
 
@@ -38,5 +42,15 @@ services:
     ports:
       - "80:80"
 
+  mediatorflow:
+    image: rolandsall24/mediatorflow:latest
+    profiles:
+      - mediatorflow
+    ports:
+      - "4800:4800"
+    volumes:
+      - mediatorflow_data:/var/lib/postgresql/data
+
 volumes:
   postgres_data:
+  mediatorflow_data:

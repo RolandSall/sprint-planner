@@ -6,6 +6,7 @@
 #   ./docker-run.sh --fresh                  # force full rebuild, no cache
 #   ./docker-run.sh --down                   # tear down containers + volumes
 #   ./docker-run.sh --platform=linux/amd64   # build for a specific platform
+#   ./docker-run.sh --mediatorflow           # enable MediatorFlow dashboard
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -22,11 +23,13 @@ command -v docker &>/dev/null || die "docker not found. Install Docker Desktop."
 FRESH=false
 DOWN=false
 PLATFORM=""
+MEDIATORFLOW=false
 for arg in "$@"; do
   case $arg in
     --fresh) FRESH=true ;;
     --down)  DOWN=true  ;;
     --platform=*) PLATFORM="${arg#*=}" ;;
+    --mediatorflow) MEDIATORFLOW=true ;;
   esac
 done
 
@@ -51,6 +54,14 @@ if [ ! -f .env ]; then
   warn ".env created from .env.example"
 fi
 
+# ── MediatorFlow ──────────────────────────────────────────────────────────────
+COMPOSE_PROFILES=""
+if $MEDIATORFLOW; then
+  COMPOSE_PROFILES="--profile mediatorflow"
+  export MEDIATOR_FLOW_ENABLED=true
+  log "MediatorFlow enabled — dashboard will be available on :4800"
+fi
+
 # ── Build ────────────────────────────────────────────────────────────────────
 echo ""
 log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -73,7 +84,7 @@ log "Starting services (db → api → web)..."
 echo ""
 
 # Start only the compose.yml (not the override which is for dev hot-reload)
-docker compose -f docker-compose.yml up --remove-orphans &
+docker compose -f docker-compose.yml $COMPOSE_PROFILES up --remove-orphans &
 COMPOSE_PID=$!
 
 # ── Wait for API to be healthy ───────────────────────────────────────────────
@@ -96,6 +107,9 @@ echo ""
 echo -e "  ${G}Web app:${N}  http://localhost:80"
 echo -e "  ${G}API:${N}      http://localhost:3000/api"
 echo -e "  ${G}Swagger:${N}  http://localhost:3000/api/docs"
+if $MEDIATORFLOW; then
+  echo -e "  ${G}MediatorFlow:${N} http://localhost:4800"
+fi
 echo ""
 echo -e "  ${Y}Useful commands:${N}"
 echo -e "    docker compose logs -f api     # API logs"
@@ -105,5 +119,5 @@ echo ""
 echo -e "  ${Y}Press Ctrl+C to stop.${N}"
 echo ""
 
-trap 'docker compose -f docker-compose.yml down; exit 0' INT TERM
+trap 'docker compose -f docker-compose.yml $COMPOSE_PROFILES down; exit 0' INT TERM
 wait $COMPOSE_PID

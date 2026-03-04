@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
 # dev.sh — Run PI Planning locally (DB in Docker, API + Web native)
-# Usage: ./dev.sh
+# Usage:
+#   ./dev.sh                       # standard local dev
+#   ./dev.sh --with-mediatorflow   # enable MediatorFlow dashboard on :4800
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -17,6 +19,14 @@ die()  { echo -e "${R}[dev] ERROR:${N} $*" >&2; exit 1; }
 command -v docker  &>/dev/null || die "docker not found. Install Docker Desktop."
 command -v node    &>/dev/null || die "node not found."
 [ -f "node_modules/.bin/drizzle-kit" ] || die "Run 'npm install' first."
+
+# ── Flags ──────────────────────────────────────────────────────────────────────
+WITH_MEDIATORFLOW=false
+for arg in "$@"; do
+  case $arg in
+    --with-mediatorflow) WITH_MEDIATORFLOW=true ;;
+  esac
+done
 
 # ── .env setup ───────────────────────────────────────────────────────────────
 if [ ! -f .env ]; then
@@ -41,6 +51,16 @@ until docker compose exec -T db pg_isready -U "$DB_USER" -q 2>/dev/null; do
   sleep 1
 done
 ok "PostgreSQL ready at localhost:5432"
+
+# ── MediatorFlow (optional) ─────────────────────────────────────────────────
+if $WITH_MEDIATORFLOW; then
+  log "Starting MediatorFlow dashboard (Docker)..."
+  docker rm -f mediatorflow-dev 2>/dev/null || true
+  docker run -d --name mediatorflow-dev -p 4800:4800 rolandsall24/mediatorflow:latest >/dev/null
+  export MEDIATOR_FLOW_ENABLED=true
+  export MEDIATOR_FLOW_URL=http://localhost:4800
+  ok "MediatorFlow running at http://localhost:4800"
+fi
 
 # ── Migrations ───────────────────────────────────────────────────────────────
 log "Generating migrations from schema..."
@@ -70,6 +90,10 @@ cleanup() {
     kill "$pid" 2>/dev/null || true
   done
   wait 2>/dev/null || true
+  if $WITH_MEDIATORFLOW; then
+    log "Stopping MediatorFlow container..."
+    docker rm -f mediatorflow-dev 2>/dev/null || true
+  fi
   log "Stopping PostgreSQL container..."
   docker compose stop db 2>/dev/null || true
   ok "Done. Goodbye."
@@ -126,6 +150,9 @@ echo ""
 echo -e "  ${G}Web app:${N}  http://localhost:4200"
 echo -e "  ${G}API:${N}      http://localhost:3000/api"
 echo -e "  ${G}Swagger:${N}  http://localhost:3000/api/docs"
+if $WITH_MEDIATORFLOW; then
+  echo -e "  ${G}MediatorFlow:${N} http://localhost:4800"
+fi
 echo ""
 echo -e "  ${Y}Press Ctrl+C to stop all services.${N}"
 echo ""
