@@ -1,0 +1,10 @@
+services:
+  pi-planning:
+    image: rolandsall24/pi-planning:latest
+    ports:
+      - "4200:4200"
+    volumes:
+      - pi_data:/var/lib/postgresql/data
+
+volumes:
+  pi_data:
