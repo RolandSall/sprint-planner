@@ -101,6 +101,81 @@ A full sample dataset is available at [`sample-data/platform-team-pi-2026-q1.csv
 
 The app supports dark and light themes. It follows your system preference by default, and you can toggle it manually from the nav bar.
 
+## MediatorFlow (Optional Telemetry Dashboard)
+
+MediatorFlow provides real-time telemetry, topology visualization, and execution tracing for the CQRS mediator pipeline. It's fully optional — the app works without it.
+
+### Enable with Docker Compose
+
+```bash
+./docker-run.sh --mediatorflow
+```
+
+This starts the MediatorFlow dashboard alongside the main stack on [http://localhost:4800](http://localhost:4800). Without the flag, only the core services (db, api, web) start.
+
+### Enable in Local Development
+
+```bash
+./dev.sh --with-mediatorflow
+```
+
+This runs a standalone MediatorFlow container and configures the API to send telemetry to it.
+
+### Docker Compose with MediatorFlow
+
+```yaml
+services:
+  pi-planning:
+    image: rolandsall24/pi-planning:latest
+    ports:
+      - "4200:4200"
+    environment:
+      MEDIATOR_FLOW_ENABLED: "true"
+      MEDIATOR_FLOW_URL: http://mediatorflow:4800
+      EVENT_STORE_MODE: audit
+    volumes:
+      - pi_data:/var/lib/postgresql/data
+
+  mediatorflow:
+    image: rolandsall24/mediatorflow:latest
+    ports:
+      - "4800:4800"
+    volumes:
+      - mediatorflow_data:/var/lib/postgresql/data
+
+volumes:
+  pi_data:
+  mediatorflow_data:
+```
+
+### Event Store Mode
+
+The mediator pipeline stores domain events in PostgreSQL. You can switch between two modes:
+
+- **`audit`** (default) — Events are logged for observability and tracing. The application state is driven by direct database writes as usual. Use this for standard operation.
+- **`source`** — Full event sourcing. Application state is reconstructed from the event stream. Use this when you need complete audit history and the ability to replay events.
+
+Switch modes by setting the `EVENT_STORE_MODE` environment variable:
+
+```bash
+# In .env
+EVENT_STORE_MODE=source
+
+# Or inline
+EVENT_STORE_MODE=source ./dev.sh
+```
+
+### Environment Variables
+
+| Variable | Values | Default | Description |
+|----------|--------|---------|-------------|
+| `EVENT_STORE_MODE` | `audit` \| `source` | `audit` | Event store strategy — `audit` logs events for tracing, `source` enables full event sourcing |
+| `MEDIATOR_FLOW_ENABLED` | `true` \| `false` | `false` | Enable telemetry collection and forwarding to MediatorFlow |
+| `MEDIATOR_FLOW_URL` | URL | `http://localhost:4800` | MediatorFlow collector endpoint |
+| `MEDIATOR_FLOW_SERVICE_NAME` | string | `pi-planning` | Service name shown in the MediatorFlow dashboard |
+
+All variables are optional and have sensible defaults. Set them in `.env` or pass them directly as environment variables.
+
 ## Local Development
 
 ```bash
