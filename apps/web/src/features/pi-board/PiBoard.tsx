@@ -447,6 +447,7 @@ export function PiBoard() {
                 <SprintColumn
                   key={sprint.id}
                   sprint={sprint}
+                  piId={piId}
                   stories={sprint.stories}
                   features={board.features}
                   warnings={board.warnings}
