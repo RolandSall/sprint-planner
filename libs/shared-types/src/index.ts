@@ -1,3 +1,4 @@
+export type MoveCategory = 'backlog' | 'release' | 'dependency' | 'overcommit' | 'rebalance';
 export type WarningType = 'OVERCOMMIT';
 export type ErrorType =
   | 'DEPENDENCY_VIOLATION'
@@ -88,9 +89,23 @@ export interface SuggestedMove {
   toSprintId: string | null;
   toSprintName: string | null;
   reason: string;
+  category: MoveCategory;
 }
 export interface SuggestFixesApiResponse {
   moves: SuggestedMove[];
+  unfixable: { message: string }[];
+}
+export interface ExploreApiRequest {
+  piId: string;
+  iterations?: number;
+}
+export interface ExploreApiResponse {
+  improved: boolean;
+  baselineScore: number;
+  bestScore: number;
+  improvementPercent: number;
+  bestMoves: SuggestedMove[];
+  trialsRun: number;
   unfixable: { message: string }[];
 }
 export interface ImportApiResponse {

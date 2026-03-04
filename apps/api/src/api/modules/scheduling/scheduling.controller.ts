@@ -4,7 +4,8 @@ import { IsString, IsNotEmpty } from 'class-validator';
 import { MediatorBus } from '@rolandsall24/nest-mediator';
 import { AutoScheduleCommand } from '../../../core/commands/scheduling/auto-schedule.command';
 import { SuggestFixesQuery } from '../../../core/queries/scheduling/suggest-fixes.query';
-import type { SchedulingApiResponse, AutoScheduleApiRequest, SuggestFixesApiResponse, SuggestFixesApiRequest } from '@org/shared-types';
+import { ExploreQuery } from '../../../core/queries/scheduling/explore.query';
+import type { SchedulingApiResponse, AutoScheduleApiRequest, SuggestFixesApiResponse, SuggestFixesApiRequest, ExploreApiResponse, ExploreApiRequest } from '@org/shared-types';
 
 class AutoScheduleRequest implements AutoScheduleApiRequest {
   @IsString() @IsNotEmpty() piId!: string;
@@ -12,6 +13,11 @@ class AutoScheduleRequest implements AutoScheduleApiRequest {
 
 class SuggestFixesRequest implements SuggestFixesApiRequest {
   @IsString() @IsNotEmpty() piId!: string;
+}
+
+class ExploreRequest implements ExploreApiRequest {
+  @IsString() @IsNotEmpty() piId!: string;
+  iterations?: number;
 }
 
 @ApiTags('scheduling')
@@ -29,5 +35,10 @@ export class SchedulingController {
   @Post('suggest-fixes')
   async suggestFixesHandler(@Body() body: SuggestFixesRequest): Promise<SuggestFixesApiResponse> {
     return this.mediator.query(new SuggestFixesQuery(body.piId));
+  }
+
+  @Post('explore')
+  async exploreHandler(@Body() body: ExploreRequest): Promise<ExploreApiResponse> {
+    return this.mediator.query(new ExploreQuery(body.piId, body.iterations));
   }
 }

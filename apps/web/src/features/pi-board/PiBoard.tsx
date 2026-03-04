@@ -4,8 +4,8 @@ import {
   DndContext, DragEndEvent, DragMoveEvent, DragOverlay, DragStartEvent,
   closestCenter, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
-import type { StoryProjection, SchedulingApiResponse, SuggestFixesApiResponse } from '@org/shared-types';
-import { usePiBoard, useMoveStory, useAutoSchedule, useSuggestFixes, useApplyFixes } from '../../hooks/use-pi-board';
+import type { StoryProjection, SchedulingApiResponse, SuggestFixesApiResponse, MoveCategory, ExploreApiResponse } from '@org/shared-types';
+import { usePiBoard, useMoveStory, useAutoSchedule, useApplyFixes, useValidateBoard, useExploreArrangements } from '../../hooks/use-pi-board';
 import { useBoardDerivedData } from '../../hooks/use-board-derived';
 import { SprintColumn } from '../../components/sprint-column/SprintColumn';
 import { StoryCardOverlay } from '../../components/story-card/StoryCard';
@@ -62,6 +62,14 @@ function DependencyOverlay({ lines, container }: { lines: DepLine[]; container: 
 
 type DepFilterMode = 'all' | 'story' | 'feature';
 
+const CATEGORY_CONFIG: Record<MoveCategory, { label: string; icon: string; order: number }> = {
+  dependency:  { label: 'Dependency Violations',       icon: '\uD83D\uDD34', order: 0 },
+  release:     { label: 'Release Deadline Violations',  icon: '\uD83D\uDD34', order: 1 },
+  overcommit:  { label: 'Overcommit Fixes',            icon: '\uD83D\uDFE0', order: 2 },
+  rebalance:   { label: 'Optimization Suggestions',     icon: '\uD83D\uDD35', order: 3 },
+  backlog:     { label: 'Backlog Placements',           icon: '\uD83D\uDFE2', order: 4 },
+};
+
 // ── PiBoard ───────────────────────────────────────────────────────────────────
 export function PiBoard() {
   const { piId = '' } = useParams<{ piId: string }>();
@@ -71,8 +79,9 @@ export function PiBoard() {
   const { data: board, isLoading, error } = usePiBoard(piId);
   const moveStory = useMoveStory(piId);
   const autoSchedule = useAutoSchedule(piId);
-  const suggestFixes = useSuggestFixes(piId);
   const applyFixes = useApplyFixes(piId);
+  const validateBoard = useValidateBoard(piId);
+  const explore = useExploreArrangements(piId);
 
   const {
     allStories, featureMap, sprintMap,
@@ -98,7 +107,10 @@ export function PiBoard() {
   const [showReleaseManager, setShowReleaseManager] = useState(false);
   const [showWarningsPopup, setShowWarningsPopup] = useState(false);
   const [scheduleResult, setScheduleResult] = useState<SchedulingApiResponse | null>(null);
-  const [fixPreview, setFixPreview] = useState<SuggestFixesApiResponse | null>(null);
+  const [validationResult, setValidationResult] = useState<SuggestFixesApiResponse | null>(null);
+  const [selectedMoveIds, setSelectedMoveIds] = useState<Set<string>>(new Set());
+  const [exploreResult, setExploreResult] = useState<ExploreApiResponse | null>(null);
+  const [selectedExploreMoveIds, setSelectedExploreMoveIds] = useState<Set<string>>(new Set());
   const [depLines, setDepLines] = useState<DepLine[]>([]);
   const [hiddenFeatureIds, setHiddenFeatureIds] = useState<Set<string>>(new Set());
 
@@ -411,6 +423,13 @@ export function PiBoard() {
           }} disabled={autoSchedule.isPending}>
             {autoSchedule.isPending ? 'Scheduling…' : '⚡ Auto Schedule'}
           </Button>
+          <Button variant="secondary" size="sm" onClick={async () => {
+            const result = await validateBoard.mutateAsync();
+            setValidationResult(result);
+            setSelectedMoveIds(new Set(result.moves.map(m => m.storyId)));
+          }} disabled={validateBoard.isPending}>
+            {validateBoard.isPending ? 'Validating…' : 'Validate Board'}
+          </Button>
           <button
             onClick={() => setShowDeletePiConfirm(true)}
             className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
@@ -620,17 +639,7 @@ export function PiBoard() {
 
                 {(board.warnings.length > 0 || depOrderWarnings.size > 0 || releaseViolationWarnings.size > 0) && (
                   <div className="flex justify-end pt-2 border-t border-border">
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        const result = await suggestFixes.mutateAsync();
-                        setFixPreview(result);
-                        setShowWarningsPopup(false);
-                      }}
-                      disabled={suggestFixes.isPending}
-                    >
-                      {suggestFixes.isPending ? 'Analyzing…' : '🔧 Quick Fix'}
-                    </Button>
+                    <p className="text-xs text-on-surface-subtle">Use "Validate Board" in the toolbar to find and apply fixes.</p>
                   </div>
                 )}
               </div>
@@ -639,76 +648,257 @@ export function PiBoard() {
         </>
       )}
 
-      {/* ── Auto-schedule result dialog ──────────────────────────────── */}
-      {/* ── Quick Fix preview dialog ─────────────────────────────────── */}
-      <Dialog open={!!fixPreview} onClose={() => setFixPreview(null)} title="Quick Fix Preview" maxWidth="lg">
-        {fixPreview && (
-          <div className="flex flex-col gap-4 -mt-2">
-            {fixPreview.moves.length > 0 && (
-              <div>
-                <h3 className="text-xs font-semibold text-on-surface-muted uppercase tracking-wide mb-2">
-                  Proposed moves ({fixPreview.moves.length})
-                </h3>
-                <div className="flex flex-col gap-2">
-                  {fixPreview.moves.map(move => (
-                    <div key={move.storyId} className="text-sm text-on-surface bg-surface-sunken rounded-lg p-3 border border-border">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-xs text-on-surface-subtle">{move.storyExternalId}</span>
-                        <span className="font-medium">{move.storyTitle}</span>
+      {/* ── Validation Result dialog ──────────────────────────────── */}
+      <Dialog open={!!validationResult} onClose={() => { setValidationResult(null); setExploreResult(null); }} title="Validate Board" maxWidth="lg">
+        {validationResult && (() => {
+          const groupedMoves = Object.entries(CATEGORY_CONFIG)
+            .sort(([, a], [, b]) => a.order - b.order)
+            .map(([cat, config]) => ({
+              category: cat as MoveCategory,
+              ...config,
+              moves: validationResult.moves.filter(m => m.category === cat),
+            }))
+            .filter(g => g.moves.length > 0);
+
+          const selectedCount = validationResult.moves.filter(m => selectedMoveIds.has(m.storyId)).length;
+          const totalCount = validationResult.moves.length;
+          const allSelected = selectedCount === totalCount && totalCount > 0;
+
+          return (
+            <div className="flex flex-col gap-4 -mt-2">
+              {/* Grouped moves */}
+              {groupedMoves.map(group => (
+                <div key={group.category}>
+                  <h3 className="text-xs font-semibold text-on-surface-muted uppercase tracking-wide mb-2">
+                    {group.icon} {group.label} ({group.moves.length})
+                  </h3>
+                  <div className="flex flex-col gap-2">
+                    {group.moves.map(move => (
+                      <label key={move.storyId} className="flex items-start gap-2 text-sm text-on-surface bg-surface-sunken rounded-lg p-3 border border-border cursor-pointer hover:border-accent/50 transition-colors">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 rounded border-border"
+                          checked={selectedMoveIds.has(move.storyId)}
+                          onChange={() => {
+                            setSelectedMoveIds(prev => {
+                              const next = new Set(prev);
+                              next.has(move.storyId) ? next.delete(move.storyId) : next.add(move.storyId);
+                              return next;
+                            });
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-mono text-xs text-on-surface-subtle">{move.storyExternalId}</span>
+                            <span className="font-medium truncate">{move.storyTitle}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-on-surface-muted">
+                            <span className="px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300">
+                              {move.fromSprintName ?? 'Backlog'}
+                            </span>
+                            <span>&rarr;</span>
+                            <span className="px-1.5 py-0.5 rounded bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300">
+                              {move.toSprintName ?? 'Backlog'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-on-surface-subtle mt-1">{move.reason}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* Unfixable */}
+              {validationResult.unfixable.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-2">Cannot auto-fix</h3>
+                  <ul className="flex flex-col gap-2">
+                    {validationResult.unfixable.map((item, i) => (
+                      <li key={i} className="text-sm text-on-surface bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800 whitespace-pre-line">
+                        {item.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* All good message */}
+              {validationResult.moves.length === 0 && validationResult.unfixable.length === 0 && !exploreResult && (
+                <div className="text-center py-6">
+                  <div className="text-3xl mb-2">&#x2705;</div>
+                  <p className="text-sm font-medium text-on-surface">All good! Your board is optimally scheduled.</p>
+                  <p className="text-xs text-on-surface-muted mt-1">No issues found.</p>
+                </div>
+              )}
+
+              {/* Explore results section */}
+              {exploreResult && (
+                <div className="border-t border-border pt-4">
+                  <h3 className="text-sm font-bold text-on-surface mb-3">Exploration Results</h3>
+                  <p className="text-xs text-on-surface-muted mb-2">
+                    Tested {exploreResult.trialsRun} variations
+                  </p>
+                  {exploreResult.improved ? (
+                    <>
+                      <div className="flex gap-3 mb-3">
+                        <div className="flex-1 bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                          <p className="text-xs text-red-600 dark:text-red-400 font-semibold uppercase">Current</p>
+                          <p className="text-lg font-bold text-red-700 dark:text-red-300">{exploreResult.baselineScore}</p>
+                        </div>
+                        <div className="flex-1 bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                          <p className="text-xs text-green-600 dark:text-green-400 font-semibold uppercase">Best found</p>
+                          <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                            {exploreResult.bestScore}
+                            <span className="text-xs font-normal ml-1">({exploreResult.improvementPercent}% better)</span>
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-on-surface-muted">
-                        <span className="px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300">
-                          {move.fromSprintName ?? 'Backlog'}
-                        </span>
-                        <span>→</span>
-                        <span className="px-1.5 py-0.5 rounded bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300">
-                          {move.toSprintName ?? 'Backlog'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-on-surface-subtle mt-1">{move.reason}</p>
+                      {exploreResult.bestMoves.length > 0 && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-xs font-semibold text-on-surface-muted uppercase tracking-wide">
+                              Proposed changes ({exploreResult.bestMoves.length} moves)
+                            </h4>
+                            <button
+                              className="text-xs text-accent hover:underline"
+                              onClick={() => {
+                                const allIds = new Set(exploreResult.bestMoves.map(m => m.storyId));
+                                setSelectedExploreMoveIds(prev =>
+                                  prev.size === allIds.size ? new Set() : allIds
+                                );
+                              }}
+                            >
+                              {selectedExploreMoveIds.size === exploreResult.bestMoves.length ? 'Deselect All' : 'Select All'}
+                            </button>
+                          </div>
+                          <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                            {exploreResult.bestMoves.map(move => (
+                              <label key={move.storyId} className="flex items-start gap-2 text-sm text-on-surface bg-surface-sunken rounded-lg p-3 border border-border cursor-pointer hover:border-accent/50 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  className="mt-0.5 rounded border-border"
+                                  checked={selectedExploreMoveIds.has(move.storyId)}
+                                  onChange={() => {
+                                    setSelectedExploreMoveIds(prev => {
+                                      const next = new Set(prev);
+                                      next.has(move.storyId) ? next.delete(move.storyId) : next.add(move.storyId);
+                                      return next;
+                                    });
+                                  }}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-mono text-xs text-on-surface-subtle">{move.storyExternalId}</span>
+                                    <span className="font-medium truncate">{move.storyTitle}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-xs text-on-surface-muted">
+                                    <span className="px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300">
+                                      {move.fromSprintName ?? 'Backlog'}
+                                    </span>
+                                    <span>&rarr;</span>
+                                    <span className="px-1.5 py-0.5 rounded bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300">
+                                      {move.toSprintName ?? 'Backlog'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-4">
+                      {exploreResult.unfixable.length > 0 ? (
+                        <>
+                          <div className="text-3xl mb-2">&#x26A0;&#xFE0F;</div>
+                          <p className="text-sm font-medium text-on-surface">No better arrangement found across {exploreResult.trialsRun} variations.</p>
+                          <p className="text-xs text-on-surface-muted mt-1">
+                            {exploreResult.unfixable.length} {exploreResult.unfixable.length === 1 ? 'issue remains' : 'issues remain'} structurally unfixable — the dependency chains exceed the available sprints.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-3xl mb-2">&#x2705;</div>
+                          <p className="text-sm font-medium text-on-surface">Your board is at the best arrangement found across all tested variations.</p>
+                        </>
+                      )}
                     </div>
-                  ))}
+                  )}
+                </div>
+              )}
+
+              {/* Footer */}
+              <div className="flex items-center justify-between gap-2 pt-3 border-t border-border sticky bottom-0 bg-surface -mx-6 px-6 -mb-6 pb-5">
+                <div className="flex items-center gap-2">
+                  {totalCount > 0 && !exploreResult && (
+                    <button
+                      className="text-xs text-accent hover:underline"
+                      onClick={() => {
+                        setSelectedMoveIds(allSelected ? new Set() : new Set(validationResult.moves.map(m => m.storyId)));
+                      }}
+                    >
+                      {allSelected ? 'Deselect All' : 'Select All'}
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {!exploreResult && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={async () => {
+                        const result = await explore.mutateAsync();
+                        setExploreResult(result);
+                        setSelectedExploreMoveIds(new Set(result.bestMoves.map(m => m.storyId)));
+                      }}
+                      disabled={explore.isPending}
+                    >
+                      {explore.isPending ? 'Exploring...' : 'Explore Better Arrangements'}
+                    </Button>
+                  )}
+                  <Button variant="secondary" size="sm" onClick={() => { setValidationResult(null); setExploreResult(null); }}>
+                    {totalCount === 0 && !exploreResult?.improved ? 'Close' : 'Cancel'}
+                  </Button>
+                  {exploreResult?.improved && selectedExploreMoveIds.size > 0 && (
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        await applyFixes.mutateAsync(
+                          exploreResult.bestMoves
+                            .filter(m => selectedExploreMoveIds.has(m.storyId))
+                            .map(m => ({ storyId: m.storyId, toSprintId: m.toSprintId }))
+                        );
+                        setValidationResult(null);
+                        setExploreResult(null);
+                      }}
+                      disabled={applyFixes.isPending}
+                    >
+                      {applyFixes.isPending ? 'Applying...' : `Apply Selected (${selectedExploreMoveIds.size} of ${exploreResult.bestMoves.length})`}
+                    </Button>
+                  )}
+                  {totalCount > 0 && !exploreResult && selectedCount > 0 && (
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        await applyFixes.mutateAsync(
+                          validationResult.moves
+                            .filter(m => selectedMoveIds.has(m.storyId))
+                            .map(m => ({ storyId: m.storyId, toSprintId: m.toSprintId }))
+                        );
+                        setValidationResult(null);
+                      }}
+                      disabled={applyFixes.isPending}
+                    >
+                      {applyFixes.isPending ? 'Applying...' : `Apply Selected (${selectedCount} of ${totalCount})`}
+                    </Button>
+                  )}
                 </div>
               </div>
-            )}
-
-            {fixPreview.unfixable.length > 0 && (
-              <div>
-                <h3 className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-2">Cannot auto-fix</h3>
-                <ul className="flex flex-col gap-2">
-                  {fixPreview.unfixable.map((item, i) => (
-                    <li key={i} className="text-sm text-on-surface bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800 whitespace-pre-line">
-                      {item.message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {fixPreview.moves.length === 0 && fixPreview.unfixable.length === 0 && (
-              <p className="text-sm text-on-surface-muted text-center py-4">No fixes needed — everything looks good!</p>
-            )}
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-border sticky bottom-0 bg-surface -mx-6 px-6 -mb-6 pb-5">
-              <Button variant="secondary" size="sm" onClick={() => setFixPreview(null)}>Cancel</Button>
-              {fixPreview.moves.length > 0 && (
-                <Button
-                  size="sm"
-                  onClick={async () => {
-                    await applyFixes.mutateAsync(fixPreview.moves.map(m => ({
-                      storyId: m.storyId,
-                      toSprintId: m.toSprintId,
-                    })));
-                    setFixPreview(null);
-                  }}
-                  disabled={applyFixes.isPending}
-                >
-                  {applyFixes.isPending ? 'Applying…' : `Apply All (${fixPreview.moves.length} moves)`}
-                </Button>
-              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
       </Dialog>
 
       {/* ── Auto-schedule result dialog ──────────────────────────────── */}

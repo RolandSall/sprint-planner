@@ -6,7 +6,7 @@ import type { Feature } from '../../domain/entities/feature';
 import type { PiRelease } from '../../domain/entities/pi-release';
 import type {
   SchedulingInput, ScheduleOptions, ScheduleResult,
-  SchedulingWeights,
+  SchedulingWeights, MoveCategory, ExploreResult,
   ValidationInput, ValidationOutput,
   InternalSuggestedMove, InternalSchedulingWarning, InternalSchedulingError,
 } from './types/scheduling-types';
@@ -121,7 +121,7 @@ export class SchedulingService {
         const target = this.findBestSprint(story.estimation, story.featureId, candidates, state, true, weights);
         if (target) {
           const reason = `Scheduled from backlog into ${target.name}` + depWarning;
-          this.buildMove(storyId, story, null, null, target, reason, state);
+          this.buildMove(storyId, story, null, null, target, reason, state, 'backlog');
           if (depWarning) {
             errors.push({ type: 'DEPENDENCY_VIOLATION', storyIds: [storyId], message: `${story.externalId} "${story.title}" placed in ${target.name} with same-sprint dep (strict ordering requires sprint ${strictEarliest}+).` });
           }
@@ -163,7 +163,7 @@ export class SchedulingService {
 
         if (target) {
           const reason = `Release deadline requires completion by ${target.name} (max sprint ${maxOrder})`;
-          this.buildMove(story.id, story, currentSprintId, currentSprint.name, target, reason, state);
+          this.buildMove(story.id, story, currentSprintId, currentSprint.name, target, reason, state, 'release');
           state.protectedStoryIds.add(story.id);
           if (strictEarliest > maxOrder) {
             errors.push({ type: 'DEPENDENCY_VIOLATION', storyIds: [story.id], message: `${story.externalId} "${story.title}" moved to ${target.name} for release deadline, but dependency requires sprint ${strictEarliest}+ (same-sprint allowed).` });
@@ -180,6 +180,8 @@ export class SchedulingService {
 
     // --- PHASE 3: Fix dep violations ---
     if (options.fixViolations) {
+      const lastOrder = sortedSprints[sortedSprints.length - 1].order;
+
       for (const story of stories) {
         const currentSprintId = state.storySprintId.get(story.id);
         if (!currentSprintId) continue;
@@ -190,16 +192,24 @@ export class SchedulingService {
 
         if (strictMinOrder > currentSprint.order) {
           const maxOrder = featureMaxOrder.get(story.featureId);
-          // Try strict first; if release conflicts, allow same-sprint as fallback
+          // Try strict first; if release or sprint count conflicts, allow same-sprint as fallback
           let effectiveMin = strictMinOrder;
           const releaseCapped = maxOrder != null && strictMinOrder > maxOrder;
-          if (releaseCapped) {
-            effectiveMin = this.computeEarliestOrder(story, depsOf, state.storySprintId, sprintMap, true);
+          const sprintsCapped = strictMinOrder > lastOrder;
+          const needsRelaxation = releaseCapped || sprintsCapped;
+
+          if (needsRelaxation) {
+            const relaxedMin = this.computeEarliestOrder(story, depsOf, state.storySprintId, sprintMap, true);
+            // If story is already valid with same-sprint deps, no action needed
+            if (relaxedMin <= currentSprint.order) {
+              continue;
+            }
+            effectiveMin = relaxedMin;
           }
           let candidates = sortedSprints.filter(s =>
             s.order >= effectiveMin && (maxOrder == null || s.order <= maxOrder) && s.id !== currentSprintId
           );
-          if (releaseCapped) {
+          if (needsRelaxation) {
             candidates = candidates.filter(s =>
               this.computeSameSprintChainDepth(story.id, s.id, depsOf, state.storySprintId) <= weights.maxSameSprintChainDepth
               || s.order >= strictMinOrder
@@ -208,16 +218,18 @@ export class SchedulingService {
           const target = this.findBestSprint(story.estimation, story.featureId, candidates, state, true, weights);
 
           if (target && target.id !== currentSprintId) {
-            const reason = releaseCapped
-              ? `Release deadline (sprint ${maxOrder}) — placed in ${target.name} (same-sprint dep allowed)`
+            const reason = needsRelaxation
+              ? releaseCapped
+                ? `Release deadline (sprint ${maxOrder}) — placed in ${target.name} (same-sprint dep allowed)`
+                : `Dependency chain exceeds available sprints — placed in ${target.name} (same-sprint dep allowed)`
               : `Dependency requires this story to be in ${target.name} or later`;
-            this.buildMove(story.id, story, currentSprintId, currentSprint.name, target, reason, state);
+            this.buildMove(story.id, story, currentSprintId, currentSprint.name, target, reason, state, 'dependency');
             state.protectedStoryIds.add(story.id);
-            if (releaseCapped) {
-              errors.push({ type: 'DEPENDENCY_VIOLATION', storyIds: [story.id], message: `${story.externalId} "${story.title}" moved to ${target.name} for release deadline, but dependency requires sprint ${strictMinOrder}+ (same-sprint allowed).` });
+            if (needsRelaxation) {
+              errors.push({ type: 'DEPENDENCY_VIOLATION', storyIds: [story.id], message: `${story.externalId} "${story.title}" moved to ${target.name} with same-sprint dep (strict ordering requires sprint ${strictMinOrder}+).` });
             }
-          } else if (releaseCapped) {
-            errors.push({ type: 'DEPENDENCY_VIOLATION', storyIds: [story.id], message: `${story.externalId} "${story.title}" has a dependency violation (needs sprint ${strictMinOrder}+) but release deadline caps at sprint ${maxOrder}.` });
+          } else if (needsRelaxation) {
+            errors.push({ type: 'DEPENDENCY_VIOLATION', storyIds: [story.id], message: `${story.externalId} "${story.title}" has a dependency violation (needs sprint ${strictMinOrder}+) but ${releaseCapped ? `release deadline caps at sprint ${maxOrder}` : `only ${lastOrder} sprints available`}.` });
           } else {
             unfixable.push({
               message: `${story.externalId} "${story.title}" has a dependency violation but no sprint exists after order ${strictMinOrder} to move it to.`,
@@ -251,7 +263,7 @@ export class SchedulingService {
           if (target) {
             const currentLoad = state.sprintLoad.get(sprint.id) ?? 0;
             this.buildMove(story.id, story, sprint.id, sprint.name, target,
-              `${sprint.name} is overcommitted (${currentLoad}/${sprint.capacity} SP)`, state);
+              `${sprint.name} is overcommitted (${currentLoad}/${sprint.capacity} SP)`, state, 'overcommit');
           }
         }
       }
@@ -294,7 +306,7 @@ export class SchedulingService {
             const target = this.findBestSprint(story.estimation, story.featureId, candidates, state, true, weights);
             if (target) {
               const reason = `Rebalanced from ${sprint.name} to fill earlier capacity in ${target.name}`;
-              this.buildMove(story.id, story, sprint.id, sprint.name, target, reason, state);
+              this.buildMove(story.id, story, sprint.id, sprint.name, target, reason, state, 'rebalance');
               moved = true;
             }
           }
@@ -319,6 +331,163 @@ export class SchedulingService {
     }
 
     return { moves: state.moves, warnings, errors, unfixable };
+  }
+
+  explore(
+    input: SchedulingInput,
+    options: ScheduleOptions,
+    iterations = 20,
+  ): ExploreResult {
+    const { stories, sprints } = input;
+    const sortedSprints = [...sprints].sort((a, b) => a.order - b.order);
+    const storyMap = new Map(stories.map(s => [s.id, s]));
+
+    // 1. Baseline — run schedule on current state
+    const baseline = this.schedule(input, options);
+    const baselineState = this.computeFinalState(stories, baseline.moves);
+    const baselineScore = this.scoreResult(baseline, baselineState, sortedSprints, storyMap);
+    let bestScore = baselineScore;
+    let bestResult = baseline;
+    let bestStories = stories;
+    let trialsRun = 1;
+
+    // 2. Fresh start — all to backlog
+    const freshStories = stories.map(s => ({ ...s, sprintId: null } as Story));
+    const freshResult = this.schedule({ ...input, stories: freshStories }, options);
+    const freshState = this.computeFinalState(freshStories, freshResult.moves);
+    const freshScore = this.scoreResult(freshResult, freshState, sortedSprints, storyMap);
+    trialsRun++;
+    if (freshScore < bestScore) {
+      bestScore = freshScore;
+      bestResult = freshResult;
+      bestStories = freshStories;
+    }
+
+    // 3. Single-story perturbation — try unplacing each large story
+    const sortedBySize = [...stories]
+      .filter(s => s.sprintId != null)
+      .sort((a, b) => b.estimation - a.estimation)
+      .slice(0, iterations);
+
+    for (const target of sortedBySize) {
+      const perturbed = stories.map(s =>
+        s.id === target.id ? { ...s, sprintId: null } as Story : s,
+      );
+      const result = this.schedule({ ...input, stories: perturbed }, options);
+      const state = this.computeFinalState(perturbed, result.moves);
+      const score = this.scoreResult(result, state, sortedSprints, storyMap);
+      trialsRun++;
+      if (score < bestScore) {
+        bestScore = score;
+        bestResult = result;
+        bestStories = perturbed;
+      }
+    }
+
+    // Convert best result's moves to be relative to current state
+    const bestMoves = bestResult === baseline
+      ? baseline.moves
+      : this.computeDiffMoves(stories, bestStories, bestResult.moves, sortedSprints, storyMap);
+
+    return {
+      improved: bestScore < baselineScore,
+      baselineScore: Math.round(baselineScore * 10) / 10,
+      bestScore: Math.round(bestScore * 10) / 10,
+      improvementPercent: baselineScore > 0
+        ? Math.round(((baselineScore - bestScore) / baselineScore) * 100)
+        : 0,
+      bestMoves,
+      trialsRun,
+      unfixable: bestResult.unfixable,
+    };
+  }
+
+  private computeFinalState(
+    stories: Story[],
+    moves: InternalSuggestedMove[],
+  ): Map<string, string | null> {
+    const state = new Map(stories.map(s => [s.id, s.sprintId]));
+    for (const move of moves) {
+      state.set(move.storyId, move.toSprintId);
+    }
+    return state;
+  }
+
+  private scoreResult(
+    result: ScheduleResult,
+    finalState: Map<string, string | null>,
+    sortedSprints: Sprint[],
+    storyMap: Map<string, Story>,
+  ): number {
+    let score = 0;
+
+    // Hard constraint penalties
+    score += result.unfixable.length * 1000;
+    score += result.errors.length * 100;
+    score += result.warnings.length * 10;
+
+    // Load balance: standard deviation of load ratios
+    const loadRatios = sortedSprints.map(s => {
+      let load = 0;
+      for (const [storyId, sprintId] of finalState) {
+        if (sprintId === s.id) {
+          const story = storyMap.get(storyId);
+          if (story) load += story.estimation;
+        }
+      }
+      return s.capacity > 0 ? load / s.capacity : 0;
+    });
+    const avg = loadRatios.reduce((a, b) => a + b, 0) / (loadRatios.length || 1);
+    const variance = loadRatios.reduce((a, r) => a + (r - avg) ** 2, 0) / (loadRatios.length || 1);
+    score += Math.sqrt(variance) * 5;
+
+    // Unplaced stories penalty
+    let unplaced = 0;
+    for (const sprintId of finalState.values()) {
+      if (sprintId == null) unplaced++;
+    }
+    score += unplaced * 50;
+
+    return score;
+  }
+
+  /**
+   * Compute the diff moves needed to go from the current state to the best found state.
+   * Returns moves expressed relative to the original story placements.
+   */
+  private computeDiffMoves(
+    originalStories: Story[],
+    perturbedStories: Story[],
+    resultMoves: InternalSuggestedMove[],
+    sortedSprints: Sprint[],
+    storyMap: Map<string, Story>,
+  ): InternalSuggestedMove[] {
+    const sprintNameMap = new Map(sortedSprints.map(s => [s.id, s.name]));
+
+    // Compute final state after applying result moves to perturbed stories
+    const finalState = this.computeFinalState(perturbedStories, resultMoves);
+
+    // Compare with original state — only include stories that actually moved
+    const diffMoves: InternalSuggestedMove[] = [];
+    for (const story of originalStories) {
+      const originalSprintId = story.sprintId;
+      const finalSprintId = finalState.get(story.id) ?? null;
+      if (originalSprintId === finalSprintId) continue;
+
+      diffMoves.push({
+        storyId: story.id,
+        storyExternalId: story.externalId,
+        storyTitle: story.title,
+        fromSprintId: originalSprintId,
+        fromSprintName: originalSprintId ? (sprintNameMap.get(originalSprintId) ?? null) : null,
+        toSprintId: finalSprintId,
+        toSprintName: finalSprintId ? (sprintNameMap.get(finalSprintId) ?? null) : null,
+        reason: 'Better arrangement found through exploration',
+        category: 'rebalance',
+      });
+    }
+
+    return diffMoves;
   }
 
   validateMove({ story, targetSprint, dependencies, storySprintMap, sprintCurrentLoad }: ValidationInput): ValidationOutput {
@@ -538,6 +707,7 @@ export class SchedulingService {
     toSprint: Sprint,
     reason: string,
     state: MutableState,
+    category: MoveCategory,
   ): void {
     state.moves.push({
       storyId,
@@ -548,6 +718,7 @@ export class SchedulingService {
       toSprintId: toSprint.id,
       toSprintName: toSprint.name,
       reason,
+      category,
     });
 
     // Update load: subtract from old sprint, add to new sprint

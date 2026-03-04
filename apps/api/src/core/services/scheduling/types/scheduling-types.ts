@@ -4,6 +4,8 @@ import type { StoryDependency } from '../../../domain/entities/story-dependency'
 import type { Feature } from '../../../domain/entities/feature';
 import type { PiRelease } from '../../../domain/entities/pi-release';
 
+export type MoveCategory = 'backlog' | 'release' | 'dependency' | 'overcommit' | 'rebalance';
+
 export interface SchedulingInput {
   stories: Story[];
   sprints: Sprint[];
@@ -63,6 +65,17 @@ export interface InternalSuggestedMove {
   toSprintId: string | null;
   toSprintName: string | null;
   reason: string;
+  category: MoveCategory;
+}
+
+export interface ExploreResult {
+  improved: boolean;
+  baselineScore: number;
+  bestScore: number;
+  improvementPercent: number;
+  bestMoves: InternalSuggestedMove[];
+  trialsRun: number;
+  unfixable: { message: string }[];
 }
 
 export interface ValidationInput {

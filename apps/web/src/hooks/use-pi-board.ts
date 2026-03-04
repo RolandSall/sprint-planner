@@ -74,6 +74,18 @@ export function useSuggestFixes(piId: string) {
   });
 }
 
+export function useValidateBoard(piId: string) {
+  return useMutation({
+    mutationFn: () => api.suggestFixes(piId),
+  });
+}
+
+export function useExploreArrangements(piId: string) {
+  return useMutation({
+    mutationFn: () => api.exploreArrangements(piId),
+  });
+}
+
 export function useApplyFixes(piId: string) {
   const qc = useQueryClient();
   return useMutation({

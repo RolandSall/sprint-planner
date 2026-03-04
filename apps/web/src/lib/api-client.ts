@@ -5,7 +5,7 @@ import type {
   SprintProjection, CreateSprintApiRequest, UpdateSprintApiRequest,
   FeatureProjection, CreateFeatureApiRequest, UpdateFeatureApiRequest,
   StoryProjection, CreateStoryApiRequest, UpdateStoryApiRequest, MoveStoryApiRequest,
-  PiBoardProjection, SchedulingApiResponse, SuggestFixesApiResponse, ImportApiResponse,
+  PiBoardProjection, SchedulingApiResponse, SuggestFixesApiResponse, ExploreApiResponse, ImportApiResponse,
 } from '@org/shared-types';
 
 const BASE = '/api';
@@ -75,6 +75,8 @@ export const api = {
     request<SchedulingApiResponse>('/scheduling/auto-schedule', { method: 'POST', body: JSON.stringify({ piId }) }),
   suggestFixes: (piId: string) =>
     request<SuggestFixesApiResponse>('/scheduling/suggest-fixes', { method: 'POST', body: JSON.stringify({ piId }) }),
+  exploreArrangements: (piId: string) =>
+    request<ExploreApiResponse>('/scheduling/explore', { method: 'POST', body: JSON.stringify({ piId }) }),
 
   // Import
   importData: (piId: string, file: File): Promise<ImportApiResponse> => {

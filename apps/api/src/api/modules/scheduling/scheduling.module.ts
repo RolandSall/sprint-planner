@@ -3,6 +3,7 @@ import { SchedulingController } from './scheduling.controller';
 import { SchedulingService } from '../../../core/services/scheduling/scheduling.service';
 import { AutoScheduleHandler } from '../../../core/commands/scheduling/auto-schedule.handler';
 import { SuggestFixesHandler } from '../../../core/queries/scheduling/suggest-fixes.handler';
+import { ExploreHandler } from '../../../core/queries/scheduling/explore.handler';
 import { STORY_REPOSITORY } from '../../../core/repositories/story.repository.interface';
 import { SPRINT_REPOSITORY } from '../../../core/repositories/sprint.repository.interface';
 import { STORY_DEPENDENCY_REPOSITORY } from '../../../core/repositories/story-dependency.repository.interface';
@@ -17,7 +18,7 @@ import { PiReleaseDrizzleRepository } from '../../../infra/database/drizzle/repo
 @Module({
   controllers: [SchedulingController],
   providers: [
-    SchedulingService, AutoScheduleHandler, SuggestFixesHandler,
+    SchedulingService, AutoScheduleHandler, SuggestFixesHandler, ExploreHandler,
     { provide: STORY_REPOSITORY, useClass: StoryDrizzleRepository },
     { provide: SPRINT_REPOSITORY, useClass: SprintDrizzleRepository },
     { provide: STORY_DEPENDENCY_REPOSITORY, useClass: StoryDependencyDrizzleRepository },
