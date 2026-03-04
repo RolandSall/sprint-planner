@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { SprintProjection, StoryProjection, FeatureProjection, SchedulingWarning } from '@org/shared-types';
 import { StoryCard } from '../story-card/StoryCard';
 import { Badge } from '../ui/Badge';
+import { SprintEditor } from './SprintEditor';
 import { resolveFeatureHex } from '../../lib/colors';
 
 interface SprintColumnProps {
   sprint: SprintProjection;
+  piId: string;
   stories: StoryProjection[];
   features: FeatureProjection[];
   warnings: SchedulingWarning[];
@@ -35,10 +38,11 @@ function formatDate(dateStr: string | null): string {
 }
 
 export function SprintColumn({
-  sprint, stories, features, warnings, depOrderWarnings, matchingStoryIds = null,
+  sprint, piId, stories, features, warnings, depOrderWarnings, matchingStoryIds = null,
   ghostStoryIds, onStoryClick, releaseNames = [], deliveryFeatureNames = [],
 }: SprintColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: sprint.id });
+  const [showEditor, setShowEditor] = useState(false);
   const featureMap = new Map(features.map(f => [f.id, f]));
   const sprintWarning = warnings.find(w => w.sprintId === sprint.id);
   const pct = Math.round((sprint.currentLoad / sprint.capacity) * 100);
@@ -61,11 +65,21 @@ export function SprintColumn({
         </div>
       )}
 
-      <div className={`rounded-t-xl border px-3 py-2 ${headerBg(sprint.currentLoad, sprint.capacity)}`}>
+      <div className={`rounded-t-xl border px-3 py-2 relative ${headerBg(sprint.currentLoad, sprint.capacity)}`}>
         <div className="flex items-center justify-between mb-1">
-          <span className="font-semibold text-sm text-on-surface">{sprint.name}</span>
+          <div className="flex items-center gap-1">
+            <span className="font-semibold text-sm text-on-surface">{sprint.name}</span>
+            <button
+              onClick={() => setShowEditor(v => !v)}
+              className="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-sunken transition-colors text-on-surface-muted hover:text-on-surface"
+              title="Edit sprint"
+            >
+              &#9998;
+            </button>
+          </div>
           {sprintWarning && <Badge variant="error">{sprintWarning.overcommitPercent}% over</Badge>}
         </div>
+        <SprintEditor sprint={sprint} piId={piId} open={showEditor} onClose={() => setShowEditor(false)} />
 
         {/* Sprint date range */}
         {(sprint.startDate || sprint.endDate) && (
