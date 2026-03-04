@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design token palette ─────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Light palette */
+    --color-surface: #ffffff;
+    --color-surface-raised: #f9fafb;
+    --color-surface-sunken: #f3f4f6;
+    --color-surface-overlay: rgba(255, 255, 255, 0.9);
+
+    --color-on-surface: #111827;
+    --color-on-surface-muted: #6b7280;
+    --color-on-surface-subtle: #9ca3af;
+
+    --color-border: #e5e7eb;
+    --color-border-subtle: #f3f4f6;
+
+    --color-accent: #4f46e5;
+    --color-accent-hover: #4338ca;
+    --color-accent-fg: #ffffff;
+
+    --color-danger: #fef2f2;
+    --color-danger-fg: #dc2626;
+    --color-warning: #fffbeb;
+    --color-warning-fg: #d97706;
+    --color-success: #f0fdf4;
+    --color-success-fg: #16a34a;
+
+    color-scheme: light;
+  }
+
+  .dark {
+    /* Dark palette — slate-based */
+    --color-surface: #0f172a;
+    --color-surface-raised: #1e293b;
+    --color-surface-sunken: #020617;
+    --color-surface-overlay: rgba(15, 23, 42, 0.9);
+
+    --color-on-surface: #f1f5f9;
+    --color-on-surface-muted: #94a3b8;
+    --color-on-surface-subtle: #64748b;
+
+    --color-border: #334155;
+    --color-border-subtle: #1e293b;
+
+    --color-accent: #818cf8;
+    --color-accent-hover: #a5b4fc;
+    --color-accent-fg: #0f172a;
+
+    --color-danger: #1c0a0a;
+    --color-danger-fg: #f87171;
+    --color-warning: #1c1500;
+    --color-warning-fg: #fbbf24;
+    --color-success: #051a0a;
+    --color-success-fg: #4ade80;
+
+    color-scheme: dark;
+  }
+
+  html, body {
+    @apply bg-surface text-on-surface transition-colors duration-200;
+  }
+}

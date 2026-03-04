@@ -1,0 +1,33 @@
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --ignore-scripts
+
+COPY . .
+
+# Compile the API
+RUN node node_modules/nx/bin/nx.js build api --configuration=production
+
+# Generate SQL migrations from schema (no DB needed — schema files present in /app)
+# drizzle.config.ts resolves schema relative to apps/api/
+RUN cd apps/api && node ../../node_modules/.bin/drizzle-kit generate --config ./drizzle.config.ts 2>&1 || true
+
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+COPY --from=builder /app/dist/apps/api ./dist
+COPY --from=builder /app/node_modules   ./node_modules
+
+# drizzle-kit needs the config + the generated SQL migrations to apply on startup
+COPY --from=builder /app/apps/api/drizzle.config.ts                    ./drizzle.config.ts
+COPY --from=builder /app/apps/api/src/infra/database/drizzle/migrations ./src/infra/database/drizzle/migrations
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+# 1. Apply any pending migrations
+# 2. Start the compiled NestJS server
+CMD ["sh", "-c", \
+  "node_modules/.bin/drizzle-kit migrate --config ./drizzle.config.ts && node dist/main.js"]

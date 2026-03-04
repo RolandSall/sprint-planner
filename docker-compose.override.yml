@@ -1,0 +1,25 @@
+# Development overrides — hot reload
+services:
+  api:
+    build:
+      target: builder
+    command: node node_modules/nx/bin/nx.js serve api --configuration=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-planning}:${DB_PASSWORD:-planning}@db:5432/pi_planning
+      NODE_ENV: development
+      PORT: 3000
+
+  web:
+    build:
+      target: builder
+    command: node node_modules/nx/bin/nx.js serve web --configuration=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+    ports:
+      - "4200:4200"

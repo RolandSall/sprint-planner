@@ -1,0 +1,26 @@
+feature_id,feature_name,story_id,story_title,estimation,depends_on,external_dependency_sprint
+F001,User Authentication,S001,Database schema & migrations,5,,
+F001,User Authentication,S002,Registration API endpoint,3,S001,
+F001,User Authentication,S003,Login & session management,4,S001,
+F001,User Authentication,S004,JWT middleware & token refresh,3,S002|S003,
+F001,User Authentication,S005,Password reset & email flow,3,S003,2
+F002,API Gateway,S006,Gateway routing config,3,,1
+F002,API Gateway,S007,Rate limiting & throttling,3,S006,
+F002,API Gateway,S008,Request/response logging,2,S006,
+F002,API Gateway,S009,Circuit breaker integration,4,S007|S008,2
+F003,Dashboard UI,S010,Layout & navigation shell,4,,1
+F003,Dashboard UI,S011,Authentication integration,3,S010|S004,
+F003,Dashboard UI,S012,User profile & settings page,3,S011,
+F003,Dashboard UI,S013,Activity feed widget,4,S010,3
+F003,Dashboard UI,S014,Analytics charts component,5,S010,3
+F004,Notification System,S015,Email notification service,3,,2
+F004,Notification System,S016,In-app push notifications,4,S015,
+F004,Notification System,S017,Notification preferences UI,2,S015|S011,
+F004,Notification System,S018,Digest & batching logic,3,S016,
+F005,Admin Panel,S019,User management CRUD,4,S001,
+F005,Admin Panel,S020,Role & permission editor,4,S019,
+F005,Admin Panel,S021,Audit log viewer,3,S020,
+F006,Mobile API Layer,S022,Mobile auth endpoints,3,S003,2
+F006,Mobile API Layer,S023,Mobile-optimised payload shaping,3,S022,
+F006,Mobile API Layer,S024,Offline sync & conflict resolution,5,S023,3
+F006,Mobile API Layer,S025,Mobile push notification bridge,3,S016|S022,

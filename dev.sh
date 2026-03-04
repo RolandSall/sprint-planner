@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────────────────
+# dev.sh — Run PI Planning locally (DB in Docker, API + Web native)
+# Usage: ./dev.sh
+# ─────────────────────────────────────────────────────────────────────────────
+set -euo pipefail
+cd "$(dirname "$0")"
+
+# ── Colours ──────────────────────────────────────────────────────────────────
+G='\033[0;32m'; Y='\033[1;33m'; B='\033[0;34m'; R='\033[0;31m'; N='\033[0m'
+log()  { echo -e "${B}[dev]${N} $*"; }
+ok()   { echo -e "${G}[dev]${N} $*"; }
+warn() { echo -e "${Y}[dev]${N} $*"; }
+die()  { echo -e "${R}[dev] ERROR:${N} $*" >&2; exit 1; }
+
+# ── Prereq checks ────────────────────────────────────────────────────────────
+command -v docker  &>/dev/null || die "docker not found. Install Docker Desktop."
+command -v node    &>/dev/null || die "node not found."
+[ -f "node_modules/.bin/drizzle-kit" ] || die "Run 'npm install' first."
+
+# ── .env setup ───────────────────────────────────────────────────────────────
+if [ ! -f .env ]; then
+  cp .env.example .env
+  warn ".env created from .env.example — edit if you need custom passwords."
+fi
+set -a; source .env; set +a
+
+DB_USER="${DB_USER:-planning}"
+DB_PASSWORD="${DB_PASSWORD:-planning}"
+export DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@localhost:5432/pi_planning"
+
+# ── Start DB ─────────────────────────────────────────────────────────────────
+log "Starting PostgreSQL (Docker)..."
+docker compose up db -d
+
+log "Waiting for PostgreSQL to be ready..."
+ATTEMPTS=0
+until docker compose exec -T db pg_isready -U "$DB_USER" -q 2>/dev/null; do
+  ATTEMPTS=$((ATTEMPTS + 1))
+  [ $ATTEMPTS -gt 30 ] && die "PostgreSQL did not become healthy after 30s."
+  sleep 1
+done
+ok "PostgreSQL ready at localhost:5432"
+
+# ── Migrations ───────────────────────────────────────────────────────────────
+log "Generating migrations from schema..."
+(cd apps/api && DATABASE_URL="$DATABASE_URL" \
+  node ../../node_modules/.bin/drizzle-kit generate \
+  --config ./drizzle.config.ts 2>&1) | grep -vE "^$|No schema changes" || true
+
+log "Applying migrations..."
+(cd apps/api && DATABASE_URL="$DATABASE_URL" \
+  node ../../node_modules/.bin/drizzle-kit migrate \
+  --config ./drizzle.config.ts 2>&1) | grep -v "^$" || true
+ok "Database schema up to date"
+
+# ── Seed demo data (idempotent) ───────────────────────────────────────────────
+log "Seeding demo data (skips if already present)..."
+SEED_OUTPUT=$(DATABASE_URL="$DATABASE_URL" node scripts/seed.js 2>&1) || warn "Seed script failed (non-fatal)"
+echo "$SEED_OUTPUT"
+PI_ID=$(echo "$SEED_OUTPUT" | grep '^PI_ID=' | tail -1 | cut -d= -f2)
+[ -n "$PI_ID" ] && ok "Seed PI ID: $PI_ID" || warn "Could not extract PI ID from seed output"
+
+# ── Trap for cleanup ─────────────────────────────────────────────────────────
+PIDS=()
+cleanup() {
+  echo ""
+  log "Shutting down..."
+  for pid in "${PIDS[@]:-}"; do
+    kill "$pid" 2>/dev/null || true
+  done
+  wait 2>/dev/null || true
+  log "Stopping PostgreSQL container..."
+  docker compose stop db 2>/dev/null || true
+  ok "Done. Goodbye."
+  exit 0
+}
+trap cleanup INT TERM EXIT
+
+# ── Start API ────────────────────────────────────────────────────────────────
+log "Starting API (NestJS) on http://localhost:3000 ..."
+DATABASE_URL="$DATABASE_URL" \
+  node node_modules/nx/bin/nx.js serve api --configuration=development \
+  2>&1 | sed 's/^/  [api] /' &
+PIDS+=($!)
+
+# ── Start Web ────────────────────────────────────────────────────────────────
+log "Starting Web (Vite) on http://localhost:4200 ..."
+node node_modules/nx/bin/nx.js serve web \
+  2>&1 | sed 's/^/  [web] /' &
+PIDS+=($!)
+
+# ── Wait for API to be ready, then import CSV ────────────────────────────────
+log "Waiting for API to be ready..."
+API_READY=false
+for i in $(seq 1 30); do
+  if curl -sf http://localhost:3000/api/teams >/dev/null 2>&1; then
+    API_READY=true
+    break
+  fi
+  sleep 1
+done
+
+if $API_READY; then
+  ok "API is ready"
+  if [ -n "${PI_ID:-}" ] && [ -f "sample-data/platform-team-pi-2026-q1.csv" ]; then
+    log "Importing CSV sample data into PI $PI_ID..."
+    IMPORT_RESULT=$(curl -sf -X POST \
+      "http://localhost:3000/api/import/csv?piId=$PI_ID" \
+      -F "file=@sample-data/platform-team-pi-2026-q1.csv" 2>&1) && \
+      ok "CSV import result: $IMPORT_RESULT" || \
+      warn "CSV import failed (non-fatal): $IMPORT_RESULT"
+  else
+    warn "Skipping CSV import (no PI_ID or CSV file missing)"
+  fi
+else
+  warn "API did not become ready in 30s — skipping CSV import"
+fi
+
+# ── Ready banner ─────────────────────────────────────────────────────────────
+echo ""
+ok "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+ok " PI Planning is starting up"
+ok "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo -e "  ${G}Web app:${N}  http://localhost:4200"
+echo -e "  ${G}API:${N}      http://localhost:3000/api"
+echo -e "  ${G}Swagger:${N}  http://localhost:3000/api/docs"
+echo ""
+echo -e "  ${Y}Press Ctrl+C to stop all services.${N}"
+echo ""
+
+wait
