@@ -17,7 +17,7 @@ RUN cd apps/api && node ../../node_modules/.bin/drizzle-kit generate --config ./
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-COPY --from=builder /app/dist/apps/api ./dist
+COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/node_modules   ./node_modules
 
 # drizzle-kit needs the config + the generated SQL migrations to apply on startup
