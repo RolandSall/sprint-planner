@@ -42,7 +42,7 @@ export function StoryCard({ story, featureTitle, featureHexColor, isDragging = f
         <span className="text-xs text-on-surface-subtle font-mono">{story.externalId}</span>
         <Badge className="shrink-0">{story.estimation} SP</Badge>
       </div>
-      <p className="text-sm font-medium text-on-surface mb-2 leading-snug">{story.title}</p>
+      <p className="text-sm font-medium text-on-surface mb-2 leading-snug line-clamp-2">{story.title}</p>
       <div className="flex items-center gap-1 flex-wrap">
         {featureTitle && (
           <span
