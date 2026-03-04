@@ -9,7 +9,7 @@ on:
 env:
   REGISTRY: docker.io
   PI_PLANNING_IMAGE: rolandsall24/pi-planning
-  VERSION: "1.0.1"
+  VERSION: "1.2.0"
 
 jobs:
   build:
