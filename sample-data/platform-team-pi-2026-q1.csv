@@ -4,7 +4,7 @@ F001,User Authentication,S002,Registration API endpoint,3,S001,
 F001,User Authentication,S003,Login & session management,4,S001,
 F001,User Authentication,S004,JWT middleware & token refresh,3,S002|S003,
 F001,User Authentication,S005,Password reset & email flow,3,S003,2
-F002,API Gateway,S006,Gateway routing config,3,,1
+F002,API Gateway,S006,Gateway routing config,3.5,,1
 F002,API Gateway,S007,Rate limiting & throttling,3,S006,
 F002,API Gateway,S008,Request/response logging,2,S006,
 F002,API Gateway,S009,Circuit breaker integration,4,S007|S008,2
