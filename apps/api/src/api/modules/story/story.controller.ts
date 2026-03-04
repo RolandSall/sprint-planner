@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { IsArray, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { MediatorBus } from '@rolandsall24/nest-mediator';
 import { CreateStoryCommand } from '../../../core/commands/story/create-story.command';
 import { UpdateStoryCommand } from '../../../core/commands/story/update-story.command';
@@ -16,14 +16,14 @@ class CreateStoryRequest implements CreateStoryApiRequest {
   @IsString() @IsNotEmpty() featureId!: string;
   @IsString() @IsNotEmpty() externalId!: string;
   @IsString() @IsNotEmpty() title!: string;
-  @IsInt() @Min(1) estimation!: number;
+  @IsNumber() @Min(0.25) estimation!: number;
   @IsOptional() @IsNumber() externalDependencySprint?: number | null;
   @IsOptional() @IsArray() dependsOnStoryIds?: string[];
 }
 class UpdateStoryRequest implements UpdateStoryApiRequest {
   @IsOptional() @IsString() externalId?: string;
   @IsOptional() @IsString() title?: string;
-  @IsOptional() @IsInt() @Min(1) estimation?: number;
+  @IsOptional() @IsNumber() @Min(0.25) estimation?: number;
   @IsOptional() @IsNumber() externalDependencySprint?: number | null;
   @IsOptional() @IsArray() dependsOnStoryIds?: string[];
 }

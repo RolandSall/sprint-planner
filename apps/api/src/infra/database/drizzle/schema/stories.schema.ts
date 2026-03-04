@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, real, index } from 'drizzle-orm/pg-core';
 import { featuresTable } from './features.schema';
 import { sprintsTable } from './sprints.schema';
 
@@ -8,7 +8,7 @@ export const storiesTable = pgTable('stories', {
   sprintId: uuid('sprint_id').references(() => sprintsTable.id, { onDelete: 'set null' }),
   externalId: text('external_id').notNull(),
   title: text('title').notNull(),
-  estimation: integer('estimation').notNull(),
+  estimation: real('estimation').notNull(),
   externalDependencySprint: integer('external_dependency_sprint'),
 }, (t) => ({
   featureIdIdx: index('stories_feature_id_idx').on(t.featureId),

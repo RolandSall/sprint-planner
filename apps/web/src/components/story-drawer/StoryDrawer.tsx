@@ -25,7 +25,7 @@ export function StoryDrawer({ story, allStories, features, sprints, piId, sprint
 
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
-  const [editEstimation, setEditEstimation] = useState(1);
+  const [editEstimation, setEditEstimation] = useState('');
   const [editExternalDep, setEditExternalDep] = useState('');
   const [editDependsOn, setEditDependsOn] = useState<string[]>([]);
   const [editSprintId, setEditSprintId] = useState<string>('');
@@ -76,7 +76,7 @@ export function StoryDrawer({ story, allStories, features, sprints, piId, sprint
   const handleEditClick = () => {
     if (!story) return;
     setEditTitle(story.title);
-    setEditEstimation(story.estimation);
+    setEditEstimation(String(story.estimation));
     setEditExternalDep(story.externalDependencySprint != null ? String(story.externalDependencySprint) : '');
     setEditDependsOn([...story.dependsOnStoryIds]);
     setEditSprintId(story.sprintId ?? '');
@@ -87,7 +87,7 @@ export function StoryDrawer({ story, allStories, features, sprints, piId, sprint
   const handleSave = () => {
     updateMutation.mutate({
       title: editTitle,
-      estimation: editEstimation,
+      estimation: parseFloat(editEstimation),
       externalDependencySprint: editExternalDep ? parseInt(editExternalDep, 10) : null,
       dependsOnStoryIds: editDependsOn,
     });
@@ -151,10 +151,9 @@ export function StoryDrawer({ story, allStories, features, sprints, piId, sprint
                     <div className="grid grid-cols-2 gap-3">
                       <Input
                         label="Story Points"
-                        type="number"
-                        min={1}
+                        placeholder="e.g. 3, 1.5, 0.5"
                         value={editEstimation}
-                        onChange={e => setEditEstimation(Number(e.target.value))}
+                        onChange={e => setEditEstimation(e.target.value)}
                       />
                       <div>
                         <p className="text-xs text-on-surface-subtle mb-1">Sprint</p>

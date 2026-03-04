@@ -61,8 +61,8 @@ export class ImportParserService implements IImportParser {
       if (!row.story_id) { errors.push({ row: rowNum, field: 'story_id', message: 'Required' }); return; }
       if (!row.story_title) { errors.push({ row: rowNum, field: 'story_title', message: 'Required' }); return; }
 
-      const estimation = parseInt(row.estimation, 10);
-      if (isNaN(estimation) || estimation <= 0) { errors.push({ row: rowNum, field: 'estimation', message: 'Must be a positive integer' }); return; }
+      const estimation = parseFloat(row.estimation);
+      if (isNaN(estimation) || estimation <= 0) { errors.push({ row: rowNum, field: 'estimation', message: 'Must be a positive number' }); return; }
 
       if (!features.has(row.feature_id)) {
         features.set(row.feature_id, { externalId: row.feature_id, name: row.feature_name });

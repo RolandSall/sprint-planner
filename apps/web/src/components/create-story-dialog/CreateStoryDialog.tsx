@@ -53,7 +53,7 @@ export function CreateStoryDialog({ piId, features, allStories, open, onClose, o
         featureId: form.featureId,
         externalId: form.externalId,
         title: form.title,
-        estimation: parseInt(form.estimation, 10),
+        estimation: parseFloat(form.estimation),
         externalDependencySprint: form.externalDependencySprint ? parseInt(form.externalDependencySprint, 10) : null,
         dependsOnStoryIds: form.dependsOnStoryIds,
       }),
@@ -153,9 +153,7 @@ export function CreateStoryDialog({ piId, features, allStories, open, onClose, o
         {/* Estimation */}
         <Input
           label="Estimation (Story Points)"
-          type="number"
-          placeholder="e.g. 3"
-          min={0}
+          placeholder="e.g. 3, 1.5, 0.5"
           value={form.estimation}
           onChange={e => setForm(prev => ({ ...prev, estimation: e.target.value }))}
           required
