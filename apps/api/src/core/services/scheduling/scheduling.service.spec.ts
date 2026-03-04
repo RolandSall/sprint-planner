@@ -5,7 +5,7 @@ import { Sprint } from '../../domain/entities/sprint';
 import { Feature } from '../../domain/entities/feature';
 import { PiRelease } from '../../domain/entities/pi-release';
 import { StoryDependency } from '../../domain/entities/story-dependency';
-import type { ScheduleOptions, ScheduleResult, SchedulingInput, SchedulingWeights } from './types/scheduling-types';
+import type { ScheduleOptions, ScheduleResult, SchedulingInput } from './types/scheduling-types';
 import { DEFAULT_WEIGHTS } from './types/scheduling-types';
 
 const PI_ID = 'pi-1';
