@@ -2,9 +2,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # docker-run.sh — Build and run PI Planning in Docker (full production stack)
 # Usage:
-#   ./docker-run.sh          # build + run (incremental Docker layer cache)
-#   ./docker-run.sh --fresh  # force full rebuild, no cache
-#   ./docker-run.sh --down   # tear down containers + volumes
+#   ./docker-run.sh                          # build + run (native platform)
+#   ./docker-run.sh --fresh                  # force full rebuild, no cache
+#   ./docker-run.sh --down                   # tear down containers + volumes
+#   ./docker-run.sh --platform=linux/amd64   # build for a specific platform
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -20,12 +21,21 @@ command -v docker &>/dev/null || die "docker not found. Install Docker Desktop."
 # ── Flags ────────────────────────────────────────────────────────────────────
 FRESH=false
 DOWN=false
+PLATFORM=""
 for arg in "$@"; do
   case $arg in
     --fresh) FRESH=true ;;
     --down)  DOWN=true  ;;
+    --platform=*) PLATFORM="${arg#*=}" ;;
   esac
 done
+
+# When --platform is set, tell Docker to build/pull for that architecture.
+# Example: ./docker-run.sh --platform=linux/amd64
+if [ -n "$PLATFORM" ]; then
+  export DOCKER_DEFAULT_PLATFORM="$PLATFORM"
+  log "Target platform: $PLATFORM"
+fi
 
 # ── Tear down ────────────────────────────────────────────────────────────────
 if $DOWN; then
