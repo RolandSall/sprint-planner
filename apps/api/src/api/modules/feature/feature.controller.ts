@@ -1,10 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { CreateFeatureUseCase } from '../../../core/use-cases/feature/create-feature.use-case';
-import { UpdateFeatureUseCase } from '../../../core/use-cases/feature/update-feature.use-case';
-import { DeleteFeatureUseCase } from '../../../core/use-cases/feature/delete-feature.use-case';
-import { FindFeaturesUseCase } from '../../../core/use-cases/feature/find-features.use-case';
+import { MediatorBus } from '@rolandsall24/nest-mediator';
+import { CreateFeatureCommand } from '../../../core/commands/feature/create-feature.command';
+import { UpdateFeatureCommand } from '../../../core/commands/feature/update-feature.command';
+import { DeleteFeatureCommand } from '../../../core/commands/feature/delete-feature.command';
+import { FindFeaturesByPiIdQuery } from '../../../core/queries/feature/find-features-by-pi-id.query';
 import type { FeatureProjection, CreateFeatureApiRequest, UpdateFeatureApiRequest } from '@org/shared-types';
 import { Feature } from '../../../core/domain/entities/feature';
 
@@ -27,26 +28,27 @@ function toProjection(f: Feature): FeatureProjection {
 @ApiTags('features')
 @Controller('features')
 export class FeatureController {
-  constructor(
-    private readonly create: CreateFeatureUseCase,
-    private readonly update: UpdateFeatureUseCase,
-    private readonly remove: DeleteFeatureUseCase,
-    private readonly find: FindFeaturesUseCase,
-  ) {}
+  constructor(private readonly mediator: MediatorBus) {}
 
   @Get() async findByPi(@Query('piId') piId: string): Promise<FeatureProjection[]> {
-    return (await this.find.byPiId(piId)).map(toProjection);
+    return (await this.mediator.query<FindFeaturesByPiIdQuery, Feature[]>(new FindFeaturesByPiIdQuery(piId))).map(toProjection);
   }
 
   @Post() @HttpCode(HttpStatus.CREATED)
   async create_(@Body() body: CreateFeatureRequest): Promise<FeatureProjection> {
-    return toProjection(await this.create.execute(body));
+    const command = new CreateFeatureCommand(body.piId, body.externalId, body.title, body.color);
+    await this.mediator.send(command);
+    return toProjection(command.result!);
   }
 
   @Patch(':id') async update_(@Param('id') id: string, @Body() body: UpdateFeatureRequest): Promise<FeatureProjection> {
-    return toProjection(await this.update.execute(id, body));
+    const command = new UpdateFeatureCommand(id, body);
+    await this.mediator.send(command);
+    return toProjection(command.result!);
   }
 
   @Delete(':id') @HttpCode(HttpStatus.NO_CONTENT)
-  async delete_(@Param('id') id: string): Promise<void> { return this.remove.execute(id); }
+  async delete_(@Param('id') id: string): Promise<void> {
+    await this.mediator.send(new DeleteFeatureCommand(id));
+  }
 }

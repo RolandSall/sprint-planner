@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { StoryController } from './story.controller';
-import { CreateStoryUseCase } from '../../../core/use-cases/story/create-story.use-case';
-import { UpdateStoryUseCase } from '../../../core/use-cases/story/update-story.use-case';
-import { DeleteStoryUseCase } from '../../../core/use-cases/story/delete-story.use-case';
-import { MoveStoryUseCase } from '../../../core/use-cases/story/move-story.use-case';
-import { FindStoriesUseCase } from '../../../core/use-cases/story/find-stories.use-case';
-import { ValidateMoveUseCase } from '../../../core/use-cases/scheduling/validate-move.use-case';
+import { CreateStoryHandler } from '../../../core/commands/story/create-story.handler';
+import { UpdateStoryHandler } from '../../../core/commands/story/update-story.handler';
+import { DeleteStoryHandler } from '../../../core/commands/story/delete-story.handler';
+import { MoveStoryHandler } from '../../../core/commands/story/move-story.handler';
+import { FindStoryProjectionsByFeatureIdHandler } from '../../../core/queries/story/find-story-projections-by-feature-id.handler';
+import { FindStoryDepsHandler } from '../../../core/queries/story/find-story-deps.handler';
+import { ValidateMoveHandler } from '../../../core/queries/scheduling/validate-move.handler';
 import { SchedulingService } from '../../../core/services/scheduling/scheduling.service';
 import { STORY_REPOSITORY } from '../../../core/repositories/story.repository.interface';
 import { STORY_DEPENDENCY_REPOSITORY } from '../../../core/repositories/story-dependency.repository.interface';
@@ -17,8 +18,8 @@ import { SprintDrizzleRepository } from '../../../infra/database/drizzle/reposit
 @Module({
   controllers: [StoryController],
   providers: [
-    CreateStoryUseCase, UpdateStoryUseCase, DeleteStoryUseCase, MoveStoryUseCase,
-    FindStoriesUseCase, ValidateMoveUseCase, SchedulingService,
+    CreateStoryHandler, UpdateStoryHandler, DeleteStoryHandler, MoveStoryHandler,
+    FindStoryProjectionsByFeatureIdHandler, FindStoryDepsHandler, ValidateMoveHandler, SchedulingService,
     { provide: STORY_REPOSITORY, useClass: StoryDrizzleRepository },
     { provide: STORY_DEPENDENCY_REPOSITORY, useClass: StoryDependencyDrizzleRepository },
     { provide: SPRINT_REPOSITORY, useClass: SprintDrizzleRepository },

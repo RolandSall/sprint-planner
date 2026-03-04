@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { NestMediatorModule } from '@rolandsall24/nest-mediator';
 import { DrizzleModule } from '../infra/database/drizzle/drizzle.module';
+import { DATABASE_POOL } from '../infra/database/drizzle/db';
 import { TeamModule } from '../api/modules/team/team.module';
 import { PiModule } from '../api/modules/pi/pi.module';
 import { SprintModule } from '../api/modules/sprint/sprint.module';
@@ -15,6 +17,13 @@ import { PiReleaseModule } from '../api/modules/pi-release/pi-release.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     DrizzleModule,
+    NestMediatorModule.forRoot({
+      eventStore: {
+        type: 'postgres',
+        useExistingPool: DATABASE_POOL,
+        mode: 'audit',
+      },
+    }),
     TeamModule, PiModule, SprintModule, FeatureModule,
     StoryModule, SchedulingModule, ImportModule, BoardModule, PiReleaseModule,
   ],

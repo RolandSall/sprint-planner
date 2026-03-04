@@ -1,9 +1,10 @@
 import { Body, Controller, Delete, Param, Patch, Post, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { IsInt, IsOptional, IsString, IsDateString, Min, IsNotEmpty } from 'class-validator';
-import { CreateSprintUseCase } from '../../../core/use-cases/sprint/create-sprint.use-case';
-import { UpdateSprintUseCase } from '../../../core/use-cases/sprint/update-sprint.use-case';
-import { DeleteSprintUseCase } from '../../../core/use-cases/sprint/delete-sprint.use-case';
+import { MediatorBus } from '@rolandsall24/nest-mediator';
+import { CreateSprintCommand } from '../../../core/commands/sprint/create-sprint.command';
+import { UpdateSprintCommand } from '../../../core/commands/sprint/update-sprint.command';
+import { DeleteSprintCommand } from '../../../core/commands/sprint/delete-sprint.command';
 import type { SprintProjection, CreateSprintApiRequest, UpdateSprintApiRequest } from '@org/shared-types';
 import { Sprint } from '../../../core/domain/entities/sprint';
 
@@ -24,33 +25,29 @@ class UpdateSprintRequest implements UpdateSprintApiRequest {
 }
 
 function toProjection(s: Sprint, currentLoad = 0): SprintProjection {
-  return {
-    id: s.id, piId: s.piId, name: s.name, order: s.order, capacity: s.capacity, currentLoad,
-    startDate: s.startDate ? s.startDate.toISOString().split('T')[0] : null,
-    endDate: s.endDate ? s.endDate.toISOString().split('T')[0] : null,
-  };
+  return { id: s.id, piId: s.piId, name: s.name, order: s.order, capacity: s.capacity, currentLoad, startDate: s.startDate ? s.startDate.toISOString().split('T')[0] : null, endDate: s.endDate ? s.endDate.toISOString().split('T')[0] : null };
 }
 
 @ApiTags('sprints')
 @Controller('sprints')
 export class SprintController {
-  constructor(
-    private readonly create: CreateSprintUseCase,
-    private readonly update: UpdateSprintUseCase,
-    private readonly remove: DeleteSprintUseCase,
-  ) {}
+  constructor(private readonly mediator: MediatorBus) {}
 
   @Post() @HttpCode(HttpStatus.CREATED)
   async createSprint(@Body() body: CreateSprintRequest): Promise<SprintProjection> {
-    return toProjection(await this.create.execute(body));
+    const command = new CreateSprintCommand(body.piId, body.name, body.order, body.capacity, body.startDate, body.endDate);
+    await this.mediator.send(command);
+    return toProjection(command.result!);
   }
 
   @Patch(':id') async updateSprint(@Param('id') id: string, @Body() body: UpdateSprintRequest): Promise<SprintProjection> {
-    return toProjection(await this.update.execute(id, body));
+    const command = new UpdateSprintCommand(id, body);
+    await this.mediator.send(command);
+    return toProjection(command.result!);
   }
 
   @Delete(':id') @HttpCode(HttpStatus.NO_CONTENT)
   async deleteSprint(@Param('id') id: string): Promise<void> {
-    return this.remove.execute(id);
+    await this.mediator.send(new DeleteSprintCommand(id));
   }
 }

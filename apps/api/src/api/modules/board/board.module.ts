@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BoardController } from './board.controller';
-import { GetBoardUseCase } from '../../../core/use-cases/board/get-board.use-case';
+import { GetBoardHandler } from '../../../core/queries/board/get-board.handler';
 import { PI_REPOSITORY } from '../../../core/repositories/pi.repository.interface';
 import { SPRINT_REPOSITORY } from '../../../core/repositories/sprint.repository.interface';
 import { FEATURE_REPOSITORY } from '../../../core/repositories/feature.repository.interface';
@@ -17,7 +17,7 @@ import { PiReleaseModule } from '../pi-release/pi-release.module';
   imports: [PiReleaseModule],
   controllers: [BoardController],
   providers: [
-    GetBoardUseCase,
+    GetBoardHandler,
     { provide: PI_REPOSITORY, useClass: PiDrizzleRepository },
     { provide: SPRINT_REPOSITORY, useClass: SprintDrizzleRepository },
     { provide: FEATURE_REPOSITORY, useClass: FeatureDrizzleRepository },

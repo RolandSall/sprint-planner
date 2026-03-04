@@ -1,16 +1,21 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DRIZZLE_CLIENT, createDrizzleClient } from './db';
+import { DRIZZLE_CLIENT, DATABASE_POOL, createPool, createDrizzleClient } from './db';
 
 @Global()
 @Module({
   providers: [
     {
-      provide: DRIZZLE_CLIENT,
+      provide: DATABASE_POOL,
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => createDrizzleClient(config.get<string>('DATABASE_URL')!),
+      useFactory: (config: ConfigService) => createPool(config.get<string>('DATABASE_URL')!),
+    },
+    {
+      provide: DRIZZLE_CLIENT,
+      inject: [DATABASE_POOL],
+      useFactory: (pool) => createDrizzleClient(pool),
     },
   ],
-  exports: [DRIZZLE_CLIENT],
+  exports: [DRIZZLE_CLIENT, DATABASE_POOL],
 })
 export class DrizzleModule {}

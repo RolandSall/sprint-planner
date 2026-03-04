@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
 import { PiReleaseController } from './pi-release.controller';
-import { CreatePiReleaseUseCase } from '../../../core/use-cases/pi-release/create-pi-release.use-case';
-import { UpdatePiReleaseUseCase } from '../../../core/use-cases/pi-release/update-pi-release.use-case';
-import { DeletePiReleaseUseCase } from '../../../core/use-cases/pi-release/delete-pi-release.use-case';
-import { FindPiReleasesUseCase } from '../../../core/use-cases/pi-release/find-pi-releases.use-case';
+import { CreatePiReleaseHandler } from '../../../core/commands/pi-release/create-pi-release.handler';
+import { UpdatePiReleaseHandler } from '../../../core/commands/pi-release/update-pi-release.handler';
+import { DeletePiReleaseHandler } from '../../../core/commands/pi-release/delete-pi-release.handler';
+import { FindPiReleasesByPiIdHandler } from '../../../core/queries/pi-release/find-pi-releases-by-pi-id.handler';
 import { PI_RELEASE_REPOSITORY } from '../../../core/repositories/pi-release.repository.interface';
 import { PiReleaseDrizzleRepository } from '../../../infra/database/drizzle/repositories/pi-release.drizzle-repository';
 
 @Module({
   controllers: [PiReleaseController],
   providers: [
-    CreatePiReleaseUseCase, UpdatePiReleaseUseCase, DeletePiReleaseUseCase, FindPiReleasesUseCase,
+    CreatePiReleaseHandler, UpdatePiReleaseHandler, DeletePiReleaseHandler, FindPiReleasesByPiIdHandler,
     { provide: PI_RELEASE_REPOSITORY, useClass: PiReleaseDrizzleRepository },
   ],
   exports: [PI_RELEASE_REPOSITORY],

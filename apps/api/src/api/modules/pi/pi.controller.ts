@@ -1,9 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Post, Query, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsDateString } from 'class-validator';
-import { CreatePiUseCase } from '../../../core/use-cases/pi/create-pi.use-case';
-import { FindPiUseCase } from '../../../core/use-cases/pi/find-pi.use-case';
-import { DeletePiUseCase } from '../../../core/use-cases/pi/delete-pi.use-case';
+import { MediatorBus } from '@rolandsall24/nest-mediator';
+import { CreatePiCommand } from '../../../core/commands/pi/create-pi.command';
+import { DeletePiCommand } from '../../../core/commands/pi/delete-pi.command';
+import { FindPisByTeamIdQuery } from '../../../core/queries/pi/find-pis-by-team-id.query';
+import { FindPiByIdQuery } from '../../../core/queries/pi/find-pi-by-id.query';
 import type { PiProjection, CreatePiApiRequest } from '@org/shared-types';
 import { PI } from '../../../core/domain/entities/pi';
 
@@ -15,40 +17,33 @@ class CreatePiRequest implements CreatePiApiRequest {
 }
 
 function toProjection(pi: PI, totalCapacity = 0): PiProjection {
-  return {
-    id: pi.id, teamId: pi.teamId, name: pi.name,
-    startDate: pi.startDate.toISOString().split('T')[0],
-    endDate: pi.endDate.toISOString().split('T')[0],
-    totalCapacity,
-  };
+  return { id: pi.id, teamId: pi.teamId, name: pi.name, startDate: pi.startDate.toISOString().split('T')[0], endDate: pi.endDate.toISOString().split('T')[0], totalCapacity };
 }
 
 @ApiTags('pis')
 @Controller('pis')
 export class PiController {
-  constructor(
-    private readonly createPi: CreatePiUseCase,
-    private readonly findPi: FindPiUseCase,
-    private readonly deletePi: DeletePiUseCase,
-  ) {}
+  constructor(private readonly mediator: MediatorBus) {}
 
   @Get() async findByTeam(@Query('teamId') teamId: string): Promise<PiProjection[]> {
-    return (await this.findPi.byTeamId(teamId)).map(pi => toProjection(pi));
+    return (await this.mediator.query<FindPisByTeamIdQuery, PI[]>(new FindPisByTeamIdQuery(teamId))).map(pi => toProjection(pi));
   }
 
   @Get(':id') async findOne(@Param('id') id: string): Promise<PiProjection> {
-    const pi = await this.findPi.byId(id);
+    const pi = await this.mediator.query<FindPiByIdQuery, PI | null>(new FindPiByIdQuery(id));
     if (!pi) throw new NotFoundException(`PI ${id} not found`);
     return toProjection(pi);
   }
 
   @Post() @HttpCode(HttpStatus.CREATED)
   async create(@Body() body: CreatePiRequest): Promise<PiProjection> {
-    return toProjection(await this.createPi.execute(body));
+    const command = new CreatePiCommand(body.teamId, body.name, body.startDate, body.endDate);
+    await this.mediator.send(command);
+    return toProjection(command.result!);
   }
 
   @Delete(':id') @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string): Promise<void> {
-    return this.deletePi.execute(id);
+    await this.mediator.send(new DeletePiCommand(id));
   }
 }
